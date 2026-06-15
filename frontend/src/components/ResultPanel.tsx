@@ -523,11 +523,9 @@ export default function ResultPanel({
               </div>
             </div>
 
-            {isImbalanced && (
-              <div className="mt-auto pt-4">
-                <AnomalyWarning comparative={safeComp} income={safeInc} cost={safeCost} weights={weights} />
-              </div>
-            )}
+            <div className="mt-auto">
+              <AnomalyWarning comparative={safeComp} income={safeInc} cost={safeCost} weights={weights} />
+            </div>
           </div>
         </div>
 

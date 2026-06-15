@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { ALL_OBJECTS } from './data/allObjects';
 import { getPhotoFolder, PHOTO_FALLBACK } from './utils/photoHelper';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
 const getAutoPhotoPath = (_address: string, id: string): string => {
   const folder = getPhotoFolder(id);
@@ -358,7 +359,7 @@ export default function App() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                     <h2 className="text-xl font-bold text-white mb-5">Структура портфеля ОКН</h2>
                     <div className="space-y-5">
@@ -407,6 +408,61 @@ export default function App() {
                         <span className="text-slate-300">Подготовка и согласование отчета</span>
                         <span className="px-3 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 rounded-full">2 проектов</span>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 lg:col-span-1">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h2 className="text-xl font-bold text-white">Radar Chart Analysis</h2>
+                      {/* HELP BUTTON START */}
+                      <div className="relative group">
+                        <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
+                          Радарная диаграмма показывает многомерный анализ объекта по 5 ключевым метрикам. Чем больше площадь заливки, тем выше инвестиционная привлекательность.
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-4 border-transparent border-t-slate-700"></div>
+                        </div>
+                      </div>
+                      {/* HELP BUTTON END */}
+                    </div>
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={[
+                          { subject: 'Локация', A: 120, fullMark: 150 },
+                          { subject: 'Состояние', A: 98, fullMark: 150 },
+                          { subject: 'Ликвидность', A: 86, fullMark: 150 },
+                          { subject: 'Инфраструктура', A: 99, fullMark: 150 },
+                          { subject: 'Потенциал', A: 85, fullMark: 150 },
+                        ]}>
+                          <defs>
+                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.5}/>
+                              <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0}/>
+                            </linearGradient>
+                          </defs>
+                          <PolarGrid stroke="#1e293b" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 150]} tick={{ fill: '#475569', fontSize: 10 }} />
+                          <Radar
+                            name="Объект"
+                            dataKey="A"
+                            stroke="#38bdf8"
+                            strokeWidth={3}
+                            fill="url(#colorValue)"
+                            fillOpacity={1}
+                          />
+                          {/* Добавляем глянцевые точки на углах */}
+                          <Radar
+                            name="Точки"
+                            dataKey="A"
+                            stroke="transparent"
+                            fill="#fff"
+                            fillOpacity={1}
+                            dot={{ r: 4, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2 }}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </div>

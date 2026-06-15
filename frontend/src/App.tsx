@@ -413,23 +413,27 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 mb-8 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 relative group/card">
+                  {/* Фоновое свечение изолировано в отдельном div с overflow-hidden */}
+                  <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[120%] bg-sky-500/5 rounded-full blur-[100px] pointer-events-none opacity-50"></div>
+                  </div>
                   
-                  <div className="flex items-center gap-2 mb-6">
-                    <h2 className="text-2xl font-black text-white tracking-tight">Радарный анализ объекта</h2>
+                  <div className="flex items-center gap-3 mb-8 relative z-20">
+                    <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight drop-shadow-sm">Радарный анализ объекта</h2>
                     <div className="relative group ml-2">
-                      <button className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors shadow-sm">
+                      <button className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800/80 border border-slate-700 text-sky-400 hover:text-sky-300 hover:bg-slate-700 hover:shadow-[0_0_15px_rgba(56,189,248,0.2)] transition-all">
                         <Info className="w-4 h-4" />
                       </button>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-72 p-4 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-2xl">
-                        Радарная диаграмма показывает многомерный анализ инвестиционной привлекательности по 5 ключевым метрикам. Чем шире зона покрытия, тем более сбалансирован и привлекателен объект.
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-8 border-transparent border-t-slate-700"></div>
+                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-80 p-5 bg-slate-800/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl text-sm text-slate-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100] shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                        <span className="font-bold text-white mb-2 block">Многомерная оценка</span>
+                        Радарная диаграмма показывает анализ инвестиционной привлекательности по 5 ключевым метрикам. Чем шире и сбалансированнее зона покрытия, тем выше рейтинг объекта.
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[10px] border-transparent border-t-slate-700/80"></div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="h-[450px] w-full">
+                  <div className="h-[550px] w-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="75%" data={[
                         { subject: 'Локация', A: 120, fullMark: 150 },
@@ -440,25 +444,32 @@ export default function App() {
                       ]}>
                         <defs>
                           <linearGradient id="colorValueRadar" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.6}/>
-                            <stop offset="95%" stopColor="#0284c7" stopOpacity={0.1}/>
+                            <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.8}/>
+                            <stop offset="50%" stopColor="#818cf8" stopOpacity={0.4}/>
+                            <stop offset="100%" stopColor="#818cf8" stopOpacity={0.05}/>
                           </linearGradient>
-                          <filter id="glowRadar" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
+                          <filter id="glowRadar" x="-30%" y="-30%" width="160%" height="160%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
                             <feComposite in="SourceGraphic" in2="blur" operator="over" />
                           </filter>
                         </defs>
-                        <PolarGrid stroke="#334155" strokeDasharray="3 3" />
+                        <PolarGrid 
+                          gridType="polygon" 
+                          stroke="#1e293b" 
+                          strokeDasharray="4 4" 
+                          strokeWidth={1.5}
+                        />
                         <PolarAngleAxis 
                           dataKey="subject" 
-                          tick={{ fill: '#e2e8f0', fontSize: 13, fontWeight: 600 }} 
-                          tickSize={16}
+                          tick={{ fill: '#f8fafc', fontSize: 14, fontWeight: 700, letterSpacing: '0.05em' }} 
+                          tickSize={24}
                         />
                         <PolarRadiusAxis 
                           angle={30} 
                           domain={[0, 150]} 
-                          tick={{ fill: '#64748b', fontSize: 11 }} 
-                          axisLine={{ stroke: '#334155' }}
+                          tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} 
+                          axisLine={false}
+                          tickCount={5}
                         />
                         <Radar
                           name="Оценка"
@@ -468,14 +479,15 @@ export default function App() {
                           fill="url(#colorValueRadar)"
                           fillOpacity={1}
                           filter="url(#glowRadar)"
+                          activeDot={{ r: 8, fill: '#fff', stroke: '#38bdf8', strokeWidth: 3 }}
                         />
+                        {/* Рисуем точки на вершинах радара явно для красоты */}
                         <Radar
                           name="Узлы"
                           dataKey="A"
                           stroke="transparent"
                           fill="transparent"
-                          dot={{ r: 6, fill: '#0f172a', stroke: '#38bdf8', strokeWidth: 3 }}
-                          activeDot={{ r: 8, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
+                          dot={{ r: 5, fill: '#0f172a', stroke: '#38bdf8', strokeWidth: 2.5 }}
                         />
                       </RadarChart>
                     </ResponsiveContainer>

@@ -82,6 +82,7 @@ export interface CostBreakdown {
   economicDep: number;
   totalDepPct: number;
   accumulatedDepreciation: number;
+  heritageReproductionCost: number;
 }
 
 export function calculateCostBreakdown(okn: any): CostBreakdown {
@@ -112,25 +113,29 @@ export function calculateCostBreakdown(okn: any): CostBreakdown {
 
   const buildCostPerSqm = 180000 + (pseudoRandom * 120000); // 180k to 300k
   const replacementCost = area * buildCostPerSqm;
+  const isOkn = okn?.is_okn !== false;
+  const heritageReproductionCost = isOkn ? replacementCost * (0.8 + pseudoRandom * 0.7) : 0;
 
-  const yearStr = String(okn?.year_built || '1900');
-  const yearBuilt = parseInt(yearStr.replace(/\D/g, '')) || 1900;
-  const age = Math.max(0, new Date().getFullYear() - yearBuilt);
+  // Износ берется из паспорта объекта для синхронизации
+  const targetWearPct = okn?.wear_pct || okn?.metadata?.wear_pct || 25;
+  const targetWearRatio = targetWearPct / 100;
   
-  const physicalDep = Math.min(0.6, age * 0.005);
-  const functionalDep = Math.min(0.2, age * 0.002);
-  const economicDep = Math.min(0.15, age * 0.001);
+  // Распределяем общий износ: 60% физический, 25% функциональный, 15% экономический
+  const physicalDep = targetWearRatio * 0.60;
+  const functionalDep = targetWearRatio * 0.25;
+  const economicDep = targetWearRatio * 0.15;
 
   const totalDepPct = physicalDep + functionalDep + economicDep;
-  const accumulatedDepreciation = replacementCost * totalDepPct;
+  // Accumulated depreciation applies to both replacement and reproduction cost
+  const accumulatedDepreciation = (replacementCost + heritageReproductionCost) * totalDepPct;
 
-  return { plotArea, landPricePerSqm, landValue, buildCostPerSqm, replacementCost, physicalDep, functionalDep, economicDep, totalDepPct, accumulatedDepreciation };
+  return { plotArea, landPricePerSqm, landValue, buildCostPerSqm, replacementCost, physicalDep, functionalDep, economicDep, totalDepPct, accumulatedDepreciation, heritageReproductionCost };
 }
 
 export function calculateCostValue(okn: any): number {
   if (!okn) return 0;
   const b = calculateCostBreakdown(okn);
-  return (b.landValue + b.replacementCost) - b.accumulatedDepreciation;
+  return (b.landValue + b.replacementCost + b.heritageReproductionCost) - b.accumulatedDepreciation;
 }
 
 import { LOCAL_MOCK_ANALOGUES } from './mockData';

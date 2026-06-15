@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { Hammer, Building, MapPin, TrendingDown, ArrowRight, ArrowLeft, Activity } from 'lucide-react';
+import { Hammer, Building, MapPin, TrendingDown, ArrowRight, ArrowLeft, Activity, Landmark, Plus, Minus, Equal } from 'lucide-react';
 import { OknObject } from '../types';
 
 interface CostApproachPanelProps {
@@ -29,20 +29,23 @@ const calculateCostBreakdown = (okn: any) => {
 
   const buildCostPerSqm = 180000 + (pseudoRandom * 120000); // 180k to 300k
   const replacementCost = area * buildCostPerSqm;
+  const isOkn = okn?.is_okn !== false;
+  const heritageReproductionCost = isOkn ? replacementCost * (0.8 + pseudoRandom * 0.7) : 0;
 
-  // Износ зависит от возраста
-  const yearStr = String(okn?.year_built || '1900');
-  const yearBuilt = parseInt(yearStr.replace(/\D/g, '')) || 1900;
-  const age = Math.max(0, new Date().getFullYear() - yearBuilt);
+  // Износ берется из паспорта объекта для синхронизации
+  const targetWearPct = okn?.wear_pct || okn?.metadata?.wear_pct || 25;
+  const targetWearRatio = targetWearPct / 100;
   
-  const physicalDep = Math.min(0.6, age * 0.005);
-  const functionalDep = Math.min(0.2, age * 0.002);
-  const economicDep = Math.min(0.15, age * 0.001);
+  // Распределяем общий износ: 60% физический, 25% функциональный, 15% экономический
+  const physicalDep = targetWearRatio * 0.60;
+  const functionalDep = targetWearRatio * 0.25;
+  const economicDep = targetWearRatio * 0.15;
 
   const totalDepPct = physicalDep + functionalDep + economicDep;
-  const accumulatedDepreciation = replacementCost * totalDepPct;
+  // Accumulated depreciation applies to both replacement and reproduction cost
+  const accumulatedDepreciation = (replacementCost + heritageReproductionCost) * totalDepPct;
 
-  return { plotArea, landPricePerSqm, landValue, buildCostPerSqm, replacementCost, physicalDep, functionalDep, economicDep, totalDepPct, accumulatedDepreciation };
+  return { plotArea, landPricePerSqm, landValue, buildCostPerSqm, replacementCost, physicalDep, functionalDep, economicDep, totalDepPct, accumulatedDepreciation, heritageReproductionCost };
 };
 
 const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ okn, setActiveTab, panelValues }) => {
@@ -50,6 +53,7 @@ const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ okn, setActiveTab
   
   const landValue = b.landValue;
   const replacementCost = b.replacementCost;
+  const heritageCost = b.heritageReproductionCost;
   const accumDepValue = b.accumulatedDepreciation;
   
   const finalValue = panelValues?.cost || 0;
@@ -59,13 +63,14 @@ const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ okn, setActiveTab
   const econPct = b.economicDep * 100;
   const totalDepPct = (b.physicalDep + b.functionalDep + b.economicDep) * 100;
 
-  const physAmount = replacementCost * b.physicalDep;
-  const funcAmount = replacementCost * b.functionalDep;
-  const econAmount = replacementCost * b.economicDep;
+  const physAmount = (replacementCost + heritageCost) * b.physicalDep;
+  const funcAmount = (replacementCost + heritageCost) * b.functionalDep;
+  const econAmount = (replacementCost + heritageCost) * b.economicDep;
 
   const finalFmt = formatValue(finalValue);
   const landFmt = formatValue(landValue);
   const repFmt = formatValue(replacementCost);
+  const herFmt = formatValue(heritageCost);
   const accFmt = formatValue(accumDepValue);
 
   return (
@@ -83,7 +88,7 @@ const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ okn, setActiveTab
               <Hammer className="w-6 h-6 text-amber-500" /> Затратный подход
             </h1>
             <p className="text-slate-400 text-sm max-w-xl">
-              Определяет сумму, необходимую для полного воссоздания исторического здания с нуля, с учетом стоимости земли и вычетом накопленного износа.
+              Определяет сумму, необходимую для полного воссоздания исторического здания с нуля, с учетом стоимости земли, исторического декора и вычетом накопленного износа.
             </p>
           </div>
           <div className="text-right">
@@ -93,51 +98,93 @@ const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ okn, setActiveTab
             </div>
           </div>
         </div>
+
+        <div className="mt-8 bg-slate-950/40 rounded-2xl border border-slate-800 p-6 flex flex-col md:flex-row items-center justify-center gap-4 text-sm font-medium relative z-10 w-full overflow-x-auto overflow-y-hidden">
+          <div className="flex flex-col items-center min-w-max">
+            <span className="text-slate-500 text-xs mb-1">Стоимость участка</span>
+            <span className="text-emerald-400 text-lg tabular-nums">{landFmt.value} {landFmt.unit}</span>
+          </div>
+          <Plus className="w-5 h-5 text-slate-600 shrink-0 hidden md:block" />
+          <div className="flex flex-col items-center min-w-max">
+            <span className="text-slate-500 text-xs mb-1">Новое строительство</span>
+            <span className="text-sky-400 text-lg tabular-nums">{repFmt.value} {repFmt.unit}</span>
+          </div>
+          <Plus className="w-5 h-5 text-slate-600 shrink-0 hidden md:block" />
+          <div className="flex flex-col items-center min-w-max">
+            <span className="text-slate-500 text-xs mb-1">Историческая часть</span>
+            <span className="text-purple-400 text-lg tabular-nums">{herFmt.value} {herFmt.unit}</span>
+          </div>
+          <Minus className="w-5 h-5 text-slate-600 shrink-0 hidden md:block" />
+          <div className="flex flex-col items-center min-w-max">
+            <span className="text-slate-500 text-xs mb-1">Накопленный износ</span>
+            <span className="text-rose-400 text-lg tabular-nums">{accFmt.value} {accFmt.unit}</span>
+          </div>
+          <Equal className="w-5 h-5 text-slate-600 shrink-0 hidden md:block" />
+          <div className="flex flex-col items-center min-w-max">
+            <span className="text-slate-500 text-xs mb-1">Итоговая стоимость</span>
+            <span className="text-amber-500 text-xl font-bold tabular-nums">{finalFmt.value} {finalFmt.unit}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-[#1e293b] rounded-3xl p-8 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><MapPin className="w-32 h-32 text-amber-500" /></div>
-          <div className="flex items-center gap-2 mb-4 relative z-10 text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-[#1e293b] rounded-3xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><MapPin className="w-32 h-32 text-emerald-500" /></div>
+          <div className="flex items-center gap-2 mb-4 relative z-10 text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]">
             <MapPin className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Стоимость участка</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Стоимость участка</span>
           </div>
-          <div className="text-4xl font-semibold text-white tabular-nums tracking-tight mb-6 relative z-10">
-            {landFmt.value} <span className="text-xl text-slate-500 font-medium">{landFmt.unit}</span>
+          <div className="text-3xl font-semibold text-white tabular-nums tracking-tight mb-4 relative z-10">
+            {landFmt.value} <span className="text-sm text-slate-500 font-medium">{landFmt.unit}</span>
           </div>
-          <div className="text-xs text-slate-400 bg-[#080d14] p-4 rounded-xl border border-[#1e293b] relative z-10 flex flex-col gap-2">
-            <div className="flex justify-between"><span>Площадь участка:</span> <strong className="text-white">{Math.round(b.plotArea).toLocaleString('ru-RU')} м²</strong></div>
-            <div className="flex justify-between"><span>Кадастровая ставка:</span> <strong className="text-white">{Math.round(b.landPricePerSqm).toLocaleString('ru-RU')} ₽/м²</strong></div>
+          <div className="text-[10px] text-slate-400 bg-[#080d14] p-3 rounded-xl border border-[#1e293b] relative z-10 flex flex-col gap-1.5">
+            <div className="flex justify-between"><span>Площадь:</span> <strong className="text-white">{Math.round(b.plotArea).toLocaleString('ru-RU')} м²</strong></div>
+            <div className="flex justify-between"><span>Ставка:</span> <strong className="text-white">{Math.round(b.landPricePerSqm).toLocaleString('ru-RU')} ₽/м²</strong></div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-[#1e293b] rounded-3xl p-8 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-[#1e293b] rounded-3xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Building className="w-32 h-32 text-sky-500" /></div>
           <div className="flex items-center gap-2 mb-4 relative z-10 text-sky-500 drop-shadow-[0_0_5px_rgba(14,165,233,0.3)]">
             <Building className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Стоимость строительства</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Строительство</span>
           </div>
-          <div className="text-4xl font-semibold text-white tabular-nums tracking-tight mb-6 relative z-10">
-            {repFmt.value} <span className="text-xl text-slate-500 font-medium">{repFmt.unit}</span>
+          <div className="text-3xl font-semibold text-white tabular-nums tracking-tight mb-4 relative z-10">
+            {repFmt.value} <span className="text-sm text-slate-500 font-medium">{repFmt.unit}</span>
           </div>
-          <div className="text-xs text-slate-400 bg-[#080d14] p-4 rounded-xl border border-[#1e293b] relative z-10 flex flex-col gap-2">
-            <div className="flex justify-between"><span>Площадь здания:</span> <strong className="text-white">{Math.round(okn?.area || 1400).toLocaleString('ru-RU')} м²</strong></div>
-            <div className="flex justify-between"><span>Базовая ставка возведения:</span> <strong className="text-white">{Math.round(b.buildCostPerSqm).toLocaleString('ru-RU')} ₽/м²</strong></div>
+          <div className="text-[10px] text-slate-400 bg-[#080d14] p-3 rounded-xl border border-[#1e293b] relative z-10 flex flex-col gap-1.5">
+            <div className="flex justify-between"><span>Площадь ОКН:</span> <strong className="text-white">{Math.round(okn?.area || 1400).toLocaleString('ru-RU')} м²</strong></div>
+            <div className="flex justify-between"><span>Базовая ставка:</span> <strong className="text-white">{Math.round(b.buildCostPerSqm).toLocaleString('ru-RU')} ₽/м²</strong></div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-rose-900/30 rounded-3xl p-8 shadow-[0_0_20px_rgba(225,29,72,0.1)] relative overflow-hidden group">
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-[#1e293b] rounded-3xl p-6 shadow-[0_0_20px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Landmark className="w-32 h-32 text-purple-500" /></div>
+          <div className="flex items-center gap-2 mb-4 relative z-10 text-purple-500 drop-shadow-[0_0_5px_rgba(168,85,247,0.3)]">
+            <Landmark className="w-5 h-5" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Воспроизводство</span>
+          </div>
+          <div className="text-3xl font-semibold text-white tabular-nums tracking-tight mb-4 relative z-10">
+            {herFmt.value} <span className="text-sm text-slate-500 font-medium">{herFmt.unit}</span>
+          </div>
+          <div className="text-[10px] text-slate-400 bg-[#080d14] p-3 rounded-xl border border-[#1e293b] relative z-10 flex flex-col gap-1.5">
+            <div className="flex justify-between"><span>Статус:</span> <strong className="text-white">ОКН (Историч.)</strong></div>
+            <div className="flex justify-between text-purple-300/80"><span>Коэфф. сложности:</span> <strong>{(b.heritageReproductionCost / b.replacementCost).toFixed(2)}x</strong></div>
+          </div>
+        </div>
+
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-rose-900/30 rounded-3xl p-6 shadow-[0_0_20px_rgba(225,29,72,0.1)] relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><TrendingDown className="w-32 h-32 text-rose-500" /></div>
           <div className="flex items-center gap-2 mb-4 relative z-10 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]">
             <TrendingDown className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Накопленный износ</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Накопленный износ</span>
           </div>
-          <div className="text-4xl font-semibold text-rose-400 tabular-nums tracking-tight mb-6 relative z-10">
-            −{accFmt.value} <span className="text-xl text-rose-500/50 font-medium">{accFmt.unit}</span>
+          <div className="text-3xl font-semibold text-rose-400 tabular-nums tracking-tight mb-4 relative z-10">
+            −{accFmt.value} <span className="text-sm text-rose-500/50 font-medium">{accFmt.unit}</span>
           </div>
-          <div className="text-xs text-rose-300/80 bg-rose-950/30 p-4 rounded-xl border border-rose-900/50 relative z-10 flex flex-col gap-2">
+          <div className="text-[10px] text-rose-300/80 bg-rose-950/30 p-3 rounded-xl border border-rose-900/50 relative z-10 flex flex-col gap-1.5">
             <div className="flex justify-between"><span>Суммарный % износа:</span> <strong className="text-rose-400">{totalDepPct.toFixed(1)}%</strong></div>
-            <div className="flex justify-between"><span>Остаточная стоимость здания:</span> <strong className="text-white">{formatValue(replacementCost - accumDepValue).value} {formatValue(replacementCost - accumDepValue).unit}</strong></div>
+            <div className="flex justify-between"><span>Остаточная стоимость:</span> <strong className="text-white">{formatValue(replacementCost + heritageCost - accumDepValue).value} {formatValue(replacementCost + heritageCost - accumDepValue).unit}</strong></div>
           </div>
         </div>
       </div>

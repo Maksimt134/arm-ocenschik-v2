@@ -190,7 +190,7 @@ export default function App() {
       cost: calculateCostValue(loadedObject)
     };
   }, [loadedObject, analogues, adjustments, selectedAnalogId]);
-  const [valuationWeights, setValuationWeights] = useState<ValuationWeights>(() => ({ comparative: 0.45, income: 0.40, cost: 0.15 }));
+  const [objectWeights, setObjectWeights] = useState<Record<string, ValuationWeights>>({});
 
   const handleObjectLoaded = useCallback((obj: any) => {
     const newId = obj?.id;
@@ -215,11 +215,11 @@ export default function App() {
   }, [loadedObject]);
 
   useEffect(() => {
-    if (loadedObject) {
+    if (loadedObject && !objectWeights[loadedObject.id]) {
       const rec = getRecommendedWeights(loadedObject, analogues);
-      setValuationWeights(rec);
+      setObjectWeights(prev => ({ ...prev, [loadedObject.id]: rec }));
     }
-  }, [loadedObject?.id, analogues?.length]);
+  }, [loadedObject?.id]);
 
   const handleHistorySelect = useCallback((cadastral: string) => {
     setAutoRunQuery(cadastral);
@@ -566,7 +566,7 @@ export default function App() {
             {activeTab === 3 && loadedObject && <AnaloguesPanel okn={loadedObject} adjustments={adjustments} setAdjustments={setAdjustments} analogues={analogues} setAnalogues={setAnalogues} selectedAnalogId={selectedAnalogId} setSelectedAnalogId={setSelectedAnalogId} setActiveTab={handleTabChange} panelValues={calculatedValues} />}
             {activeTab === 4 && loadedObject && <IncomeApproachPanel okn={loadedObject} setActiveTab={handleTabChange} panelValues={calculatedValues} adjustments={adjustments} setAdjustments={setAdjustments} />}
             {activeTab === 5 && loadedObject && <CostApproachPanel okn={loadedObject} setActiveTab={handleTabChange} panelValues={calculatedValues} />}
-            {activeTab === 6 && loadedObject && <ResultPanel okn={loadedObject} analogues={analogues} adjustments={adjustments} weights={valuationWeights} onWeightsChange={setValuationWeights} panelValues={calculatedValues} setActiveTab={handleTabChange} />}
+            {activeTab === 6 && loadedObject && <ResultPanel okn={loadedObject} analogues={analogues} adjustments={adjustments} weights={objectWeights[loadedObject.id] || getRecommendedWeights(loadedObject, analogues)} onWeightsChange={(w) => setObjectWeights(prev => ({...prev, [loadedObject.id]: w}))} panelValues={calculatedValues} setActiveTab={handleTabChange} />}
           </div>
         )}
         </ErrorBoundary>

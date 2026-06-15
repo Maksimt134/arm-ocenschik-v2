@@ -11,7 +11,7 @@
   formatValue: (val: number) => { value: string, unit: string }
 ) => {
   const today = new Date().toLocaleDateString('ru-RU');
-  const reportNumber = `РњРћРЎ-${Math.floor(100000 + Math.random() * 900000)}`;
+  const reportNumber = `МОС-${Math.floor(100000 + Math.random() * 900000)}`;
 
   // Using a realistic-looking CSS-based stamp and a cursive font for signature
   const stampHtml = `
@@ -154,21 +154,21 @@
       <div class="signature-block">
         ${stampHtml}
         <div>
-          <strong>Р’РµРґСѓС‰РёР№ РѕС†РµРЅС‰РёРє-Р°РЅР°Р»РёС‚РёРє</strong><br><br>
+          <strong>Ведущий оценщик-аналитик</strong><br><br>
           <div style="position: relative; display: inline-block;">
-            <span class="sign-text">C.РЎРјРёСЂРЅРѕРІ</span>
+            <span class="sign-text">С.Смирнов</span>
             <span class="signature-line"></span>
           </div>
-          / РЎРјРёСЂРЅРѕРІ Рљ.Рђ. /
+          / Смирнов К.А. /
         </div>
         <div>
           <br><br>
-          <strong>Рњ.Рџ.</strong>
+          <strong>М.П.</strong>
         </div>
       </div>
       
       <div style="margin-top: 40px; font-size: 9pt; color: #666; text-align: justify;">
-        * РќР°СЃС‚РѕСЏС‰РёР№ РѕС‚С‡РµС‚ СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅ Р°РІС‚РѕРјР°С‚РёР·РёСЂРѕРІР°РЅРЅРѕР№ СЃРёСЃС‚РµРјРѕР№ РђР Рњ В«РћС†РµРЅС‰РёРєВ» РЅР° Р±Р°Р·Рµ СѓС‚РІРµСЂР¶РґРµРЅРЅС‹С… РјРµС‚РѕРґРёРє РњРѕСЃРіРѕСЂР‘РўР. Р”РѕРєСѓРјРµРЅС‚ СЃРѕРґРµСЂР¶РёС‚ СЌР»РµРєС‚СЂРѕРЅРЅСѓСЋ РёРјРёС‚Р°С†РёСЋ РїРѕРґРїРёСЃРё Рё РёРјРµРµС‚ СЋСЂРёРґРёС‡РµСЃРєСѓСЋ СЃРёР»Сѓ РїСЂРё СЃРѕРїСЂРѕРІРѕР¶РґРµРЅРёРё С†РёС„СЂРѕРІС‹Рј СЃРµСЂС‚РёС„РёРєР°С‚РѕРј Р­Р¦Рџ. Р’СЃРµ СЂР°СЃС‡РµС‚С‹ РїСЂРёРІРµРґРµРЅС‹ Р±РµР· СѓС‡РµС‚Р° РЅР°Р»РѕРіР° РЅР° РґРѕР±Р°РІР»РµРЅРЅСѓСЋ СЃС‚РѕРёРјРѕСЃС‚СЊ (РќР”РЎ 20%).
+        * Настоящий отчет сгенерирован автоматизированной системой оценки. Предварительная стоимость не является публичной офертой и требует верификации экспертом.
       </div>
 
     </body>

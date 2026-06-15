@@ -15,11 +15,15 @@ import {
   ArrowLeft,
   FileText,
   FileImage,
-  Globe
+  Globe,
+  Calculator
 } from 'lucide-react';
 import ReactDOMServer from 'react-dom/server';
 import { ProfessionalValuationReport } from './ProfessionalValuationReport';
 import { OknObject } from '../types';
+import { getRecommendedWeights } from '../utils/calc';
+import AnomalyWarning from './AnomalyWarning';
+import CashflowChart from './CashflowChart';
 
 export const calculateKKH = (params: { historical_weight: number; architectural_rarity: number; public_awareness: number; constraint_points: number; }) => {
   const { historical_weight: I, architectural_rarity: U, public_awareness: P, constraint_points: O } = params;
@@ -73,56 +77,66 @@ export default function ResultPanel({
   const pInc = Math.round(weights.income * 100);
   const pCost = Math.round(weights.cost * 100);
 
+  const isImbalanced = pComp > 60 || pInc > 60 || pCost > 60 || pComp < 10 || pInc < 10 || pCost < 10;
+
   const finalValue = ((safeComp * (pComp / 100)) + (safeInc * (pInc / 100)) + (safeCost * (pCost / 100))) * kkhMultiplier;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMathModalOpen, setIsMathModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiText, setAiText] = useState("");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isBalanceApplied, setIsBalanceApplied] = useState(false);
 
-  const updateWeights = (type: 'comp' | 'inc' | 'cost', val: number) => {
-    let newWeight = Math.min(Math.max(val, 0), 100) / 100;
-    let remaining = 1 - newWeight;
+  const handleSliderChange = (changedKey: 'comparative' | 'income' | 'cost', newValue: number) => {
+    const val = newValue / 100;
     
-    let newWeights = { ...weights };
+    const keys = ['comparative', 'income', 'cost'] as const;
+    const otherKeys = keys.filter(k => k !== changedKey);
     
-    if (type === 'comp') {
-      newWeights.comparative = newWeight;
-      const otherSum = weights.income + weights.cost;
-      if (otherSum === 0) {
-        newWeights.income = remaining / 2;
-        newWeights.cost = remaining / 2;
-      } else {
-        newWeights.income = remaining * (weights.income / otherSum);
-        newWeights.cost = remaining * (weights.cost / otherSum);
-      }
-    } else if (type === 'inc') {
-      newWeights.income = newWeight;
-      const otherSum = weights.comparative + weights.cost;
-      if (otherSum === 0) {
-        newWeights.comparative = remaining / 2;
-        newWeights.cost = remaining / 2;
-      } else {
-        newWeights.comparative = remaining * (weights.comparative / otherSum);
-        newWeights.cost = remaining * (weights.cost / otherSum);
-      }
-    } else if (type === 'cost') {
-      newWeights.cost = newWeight;
-      const otherSum = weights.comparative + weights.income;
-      if (otherSum === 0) {
-        newWeights.comparative = remaining / 2;
-        newWeights.income = remaining / 2;
-      } else {
-        newWeights.comparative = remaining * (weights.comparative / otherSum);
-        newWeights.income = remaining * (weights.income / otherSum);
-      }
+    const oldOtherSum = (weights[otherKeys[0]] || 0) + (weights[otherKeys[1]] || 0);
+    const remaining = 1 - val;
+
+    let newWeights = { ...weights, [changedKey]: val };
+
+    // Пропорциональное распределение остатка
+    if (oldOtherSum === 0) {
+      newWeights[otherKeys[0]] = remaining / 2;
+      newWeights[otherKeys[1]] = remaining / 2;
+    } else {
+      newWeights[otherKeys[0]] = (weights[otherKeys[0]] / oldOtherSum) * remaining;
+      newWeights[otherKeys[1]] = (weights[otherKeys[1]] / oldOtherSum) * remaining;
     }
-    onWeightsChange(newWeights);
+
+    const finalWeights = { comparative: 0, income: 0, cost: 0 };
+    
+    // 1. Жестко фиксируем тот, который тянет пользователь
+    finalWeights[changedKey] = Number(val.toFixed(2));
+    // 2. Записываем первый из оставшихся
+    finalWeights[otherKeys[0]] = Number(newWeights[otherKeys[0]].toFixed(2));
+    // 3. Последний высчитываем вычитанием, чтобы сумма ВСЕГДА была ровно 1.0 (100%)
+    finalWeights[otherKeys[1]] = Number((1 - finalWeights[changedKey] - finalWeights[otherKeys[0]]).toFixed(2));
+
+    onWeightsChange(finalWeights);
   };
 
-  const handleResetBalance = () => {
-    onWeightsChange({ comparative: 0.45, income: 0.40, cost: 0.15 });
+  const handleResetBalance = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const rec = getRecommendedWeights(okn);
+    if (rec) {
+      const newWeights = {
+        comparative: rec.comparative ?? 0.34,
+        income: rec.income ?? 0.33,
+        cost: rec.cost ?? 0.33
+      };
+      onWeightsChange(newWeights);
+      setIsBalanceApplied(true);
+      setTimeout(() => setIsBalanceApplied(false), 2000);
+    }
   };
 
   const handleGenerate = () => {
@@ -204,11 +218,13 @@ export default function ResultPanel({
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       await html2pdf().set(opt).from(element).save();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error('Ошибка при генерации отчета:', error);
+      alert('Произошла ошибка при создании документа. Проверьте консоль.');
+    } finally {
+      setIsExporting(false);
+      setIsExportModalOpen(false);
     }
-    setIsExporting(false);
-    setIsExportModalOpen(false);
   };
 
   const handleDownloadWord = async () => {
@@ -226,11 +242,13 @@ export default function ResultPanel({
       });
       const { saveAs } = await import('file-saver');
       saveAs(blob, `Report_${okn?.name || 'OKN'}.doc`);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error('Ошибка при генерации отчета:', error);
+      alert('Произошла ошибка при создании документа. Проверьте консоль.');
+    } finally {
+      setIsExporting(false);
+      setIsExportModalOpen(false);
     }
-    setIsExporting(false);
-    setIsExportModalOpen(false);
   };
 
 
@@ -363,84 +381,105 @@ export default function ResultPanel({
         {/* Секция "Итоговое согласование стоимости ОКН" */}
         <div className="flex items-center justify-between mt-12 mb-6">
           <h2 className="text-2xl font-bold text-white tracking-tight">Итоговое согласование стоимости ОКН</h2>
-          <button 
-            onClick={() => setIsModalOpen(true)} 
-            className="flex items-center gap-2 text-white font-medium hover:text-white transition-colors text-sm px-4 py-2 border border-indigo-500/30 hover:border-indigo-500/60 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.1)]"
-          >
-            <Info className="w-4 h-4 text-indigo-400" />
-            Зачем нужны 3 подхода?
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMathModalOpen(true)} 
+              className="flex items-center gap-2 text-emerald-400 font-medium text-sm px-4 py-2 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-sm transition-colors shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+            >
+              <Calculator className="w-4 h-4" />
+              Формулы расчетов
+            </button>
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="flex items-center gap-2 text-white font-medium hover:text-white transition-colors text-sm px-4 py-2 border border-indigo-500/30 hover:border-indigo-500/60 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+            >
+              <Info className="w-4 h-4 text-indigo-400" />
+              Зачем нужны 3 подхода?
+            </button>
+          </div>
         </div>
 
         {/* Нижние Блоки: Сетка из 2-х панелей */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-[#111827]/80 backdrop-blur-md border border-[#1e293b] rounded-2xl p-7 shadow-sm">
-            <h3 className="text-sm font-bold text-white mb-8">Прогноз денежных потоков</h3>
-            <div className="relative h-56 w-full">
-              <svg viewBox="0 0 400 200" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                <line x1="0" y1="160" x2="400" y2="160" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="120" x2="400" y2="120" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="80" x2="400" y2="80" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="40" x2="400" y2="40" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" />
-                
-                <text x="-12" y="164" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="end">0</text>
-                <text x="-12" y="124" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="end">1</text>
-                <text x="-12" y="84" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="end">2</text>
-                <text x="-12" y="44" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="end">3</text>
-                <text x="-12" y="4" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="end">4</text>
-                
-                <text x="0" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2025</text>
-                <text x="44" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2026</text>
-                <text x="88" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2027</text>
-                <text x="133" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2028</text>
-                <text x="177" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2029</text>
-                <text x="222" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2030</text>
-                <text x="266" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2031</text>
-                <text x="311" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2032</text>
-                <text x="355" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2033</text>
-                <text x="400" y="185" fill="#475569" fontSize="10" fontFamily="sans-serif" textAnchor="middle">2034</text>
-
-                <defs>
-                   <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.2"/>
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
-                   </linearGradient>
-                </defs>
-
-                <path d="M 0 130 Q 200 110 400 60 L 400 160 L 0 160 Z" fill="url(#baseGrad)" />
-                <path d="M 0 130 Q 200 110 400 60" fill="none" stroke="#10b981" strokeWidth="2.5" />
-                <path d="M 0 130 Q 200 90 400 20" fill="none" stroke="#0ea5e9" strokeWidth="2" strokeDasharray="6 6" />
-                <path d="M 0 130 Q 200 140 400 145" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 6" />
-              </svg>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="flex flex-col gap-6">
+            <div className="bg-[#111827]/80 backdrop-blur-md border border-[#1e293b] rounded-2xl p-7 shadow-sm flex flex-col justify-center">
+              <h3 className="text-sm font-bold text-white mb-8">Прогноз денежных потоков</h3>
+            <div className="h-[250px] w-full">
+              <CashflowChart okn={okn} />
             </div>
-            <div className="flex justify-center gap-8 mt-10 text-xs font-medium">
-               <div className="flex items-center gap-2.5">
-                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                 <span className="text-emerald-400">Базовый прогноз</span>
-               </div>
-               <div className="flex items-center gap-2.5">
-                 <div className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]"></div>
-                 <span className="text-sky-400">Оптимистичный прогноз</span>
-               </div>
-               <div className="flex items-center gap-2.5">
-                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                 <span className="text-amber-400">Пессимистичный прогноз</span>
-               </div>
+          </div>
+
+            {/* Блок Нейросети (Gemini) */}
+            <div>
+              <h4 className="text-sm font-semibold text-slate-300 mb-3 ml-2">ИИ-анализ прогноза окупаемости</h4>
+              <div className="bg-[#1e1b4b]/60 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 flex flex-col xl:flex-row items-center justify-between shadow-[0_0_20px_rgba(79,70,229,0.1)] relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none"></div>
+                 <div className="flex items-center gap-4 mb-4 xl:mb-0 relative z-10 w-full xl:w-auto">
+                    <div className="bg-indigo-500/20 p-3 rounded-xl border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)] shrink-0">
+                       <Network className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <div>
+                       <h3 className="text-lg font-bold text-white tracking-tight mb-1">Обоснование от <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-fuchsia-400 font-black drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">Gemini</span></h3>
+                       <p className="text-indigo-200/60 text-xs font-medium">Аналитический отчет на базе LLM.</p>
+                    </div>
+                 </div>
+                 <button 
+                   onClick={handleGenerate} 
+                   disabled={isGenerating} 
+                   className="w-full xl:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.4)] relative z-10 text-sm shrink-0"
+                 >
+                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+                    {isGenerating ? 'Сбор...' : 'Сгенерировать'}
+                 </button>
+              </div>
+              
+              {aiText && (
+                <div className="bg-[#1e1b4b]/40 backdrop-blur-sm border border-indigo-500/20 rounded-2xl p-6 mt-4 text-indigo-100/90 text-sm leading-relaxed whitespace-pre-line shadow-inner animate-in fade-in slide-in-from-top-4 duration-500">
+                   {aiText}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="bg-[#111827]/80 backdrop-blur-md border border-[#1e293b] rounded-2xl p-7 flex flex-col justify-between shadow-sm">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
                <div className="flex items-center gap-3">
                  <Scale className="w-5 h-5 text-slate-500" />
                  <h3 className="text-base font-bold text-white">Весовое согласование</h3>
                </div>
-               <button onClick={handleResetBalance} className="text-[10px] font-bold text-sky-400 tracking-widest uppercase hover:text-sky-300 transition-colors">
-                 Рекомендованный баланс
-               </button>
+            </div>
+
+            <div className="bg-sky-500/10 border border-sky-500/30 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-inner">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-sky-500/20 rounded-lg border border-sky-500/30">
+                   <Brain className="w-5 h-5 text-sky-400" />
+                 </div>
+                 <div>
+                   <div className="text-sm font-bold text-sky-100 tracking-wide">Умная балансировка</div>
+                   <div className="text-xs text-sky-400/80 mt-0.5">Авто-расчет весов на основе параметров ОКН</div>
+                 </div>
+              </div>
+              <button 
+                type="button"
+                onClick={handleResetBalance} 
+                disabled={isBalanceApplied}
+                className={`w-full sm:w-auto px-5 py-2.5 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-[0_0_15px_rgba(14,165,233,0.4)] flex items-center justify-center gap-2 ${
+                  isBalanceApplied 
+                    ? 'bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.4)] scale-95' 
+                    : 'bg-sky-600 hover:bg-sky-500 active:scale-95'
+                }`}
+              >
+                {isBalanceApplied ? (
+                  <>
+                    <Check className="w-4 h-4" /> Применено
+                  </>
+                ) : (
+                  'Применить'
+                )}
+              </button>
             </div>
             
-            <div className="space-y-8 flex-1 flex flex-col justify-center">
+            <div className="relative space-y-8 mt-2 mb-6">
               <div className="relative">
                 <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
                   <span>Сравнительный</span>
@@ -450,7 +489,7 @@ export default function ResultPanel({
                   type="range" 
                   min="0" max="100" 
                   value={pComp} 
-                  onChange={(e) => updateWeights('comp', Number(e.target.value))} 
+                  onChange={(e) => handleSliderChange('comparative', Number(e.target.value))} 
                   className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-sky-500 hover:accent-sky-400 focus:outline-none shadow-inner" 
                 />
               </div>
@@ -464,7 +503,7 @@ export default function ResultPanel({
                   type="range" 
                   min="0" max="100" 
                   value={pInc} 
-                  onChange={(e) => updateWeights('inc', Number(e.target.value))} 
+                  onChange={(e) => handleSliderChange('income', Number(e.target.value))} 
                   className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 focus:outline-none shadow-inner" 
                 />
               </div>
@@ -478,41 +517,20 @@ export default function ResultPanel({
                   type="range" 
                   min="0" max="100" 
                   value={pCost} 
-                  onChange={(e) => updateWeights('cost', Number(e.target.value))} 
+                  onChange={(e) => handleSliderChange('cost', Number(e.target.value))} 
                   className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 focus:outline-none shadow-inner" 
                 />
               </div>
             </div>
+
+            {isImbalanced && (
+              <div className="mt-auto pt-4">
+                <AnomalyWarning comparative={safeComp} income={safeInc} cost={safeCost} weights={weights} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Блок Нейросети (Gemini) */}
-        <div className="bg-[#1e1b4b]/60 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 mt-6 flex flex-col md:flex-row items-center justify-between shadow-[0_0_20px_rgba(79,70,229,0.1)] relative overflow-hidden">
-           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none"></div>
-           <div className="flex items-center gap-5 mb-4 md:mb-0 relative z-10">
-              <div className="bg-indigo-500/20 p-3.5 rounded-2xl border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                 <Network className="w-7 h-7 text-indigo-400" />
-              </div>
-              <div>
-                 <h3 className="text-2xl font-bold text-white tracking-tight mb-1.5">Обоснование от <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-fuchsia-400 font-black drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">Gemini</span></h3>
-                 <p className="text-indigo-200/60 text-sm font-medium">Комплексный аналитический отчет на базе большой языковой модели.</p>
-              </div>
-           </div>
-           <button 
-             onClick={handleGenerate} 
-             disabled={isGenerating} 
-             className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(79,70,229,0.4)] relative z-10"
-           >
-              {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bot className="w-5 h-5" />}
-              {isGenerating ? 'Сбор данных...' : 'Сгенерировать'}
-           </button>
-        </div>
-        
-        {aiText && (
-          <div className="bg-[#1e1b4b]/40 backdrop-blur-sm border border-indigo-500/20 rounded-2xl p-8 mt-4 text-indigo-100/90 text-base leading-relaxed whitespace-pre-line shadow-inner animate-in fade-in slide-in-from-top-4 duration-500">
-             {aiText}
-          </div>
-        )}
         
         <div className="mt-8">
           <button 
@@ -641,6 +659,67 @@ export default function ResultPanel({
                 <div className="text-slate-400 text-sm mt-1">Это может занять несколько секунд</div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {isMathModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[#0B1120]/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsMathModalOpen(false)}>
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-3xl w-full max-w-4xl p-8 relative shadow-[0_0_50px_rgba(16,185,129,0.15)] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsMathModalOpen(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors bg-slate-800/50 p-2 rounded-full">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4 mb-8">
+              <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20">
+                <Calculator className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h2 className="text-3xl font-black text-white tracking-tight">Математическая модель</h2>
+            </div>
+
+            <div className="space-y-6">
+              {/* Итоговое согласование */}
+              <div className="bg-[#111827] border border-[#1e293b] p-6 rounded-2xl min-w-0">
+                <h3 className="text-emerald-400 font-bold mb-4 uppercase tracking-widest text-xs">Финальный расчет (Взвешенная стоимость)</h3>
+                <div className="font-mono text-sm text-slate-300 bg-black/50 p-5 rounded-xl overflow-x-auto border border-slate-800/50 w-full">
+                  <div className="text-slate-500 mb-3 select-none">Формула:</div>
+                  <div className="mb-6 text-indigo-300 tracking-wide break-all whitespace-normal">
+                    V_final = (V_comp × W_comp + V_inc × W_inc + V_cost × W_cost) × K_kkn
+                  </div>
+                  <div className="text-slate-500 mb-3 select-none">Подстановка текущих значений:</div>
+                  <div className="text-white font-bold leading-relaxed break-all whitespace-normal">
+                    V_final = ({formatValue(safeComp).value} × {pComp}% + {formatValue(safeInc).value} × {pInc}% + {formatValue(safeCost).value} × {pCost}%) × {kkhMultiplier.toFixed(2)}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-800 text-emerald-400 font-black text-xl">
+                    Итог = {formatValue(finalValue).value} {formatValue(finalValue).unit}
+                  </div>
+                </div>
+              </div>
+
+              {/* Сетка подходов */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl min-w-0">
+                  <h3 className="text-sky-400 font-bold mb-3 uppercase tracking-widest text-xs">Сравнительный подход</h3>
+                  <div className="font-mono text-xs text-slate-300 bg-black/50 p-4 rounded-xl h-full border border-slate-800/50 break-words whitespace-pre-wrap">
+                    <div className="text-slate-500 mb-2 select-none">Базовая формула:</div>
+                    <div className="mb-4 text-sky-300">V_comp = S_okn × ( Σ(P_sqm_i × K_adj_i) / n )</div>
+                    <div className="text-slate-400 leading-relaxed mb-4">Оценка проводится методом сравнения удельных показателей (цен за 1 кв.м.) объектов-аналогов с применением поправок на износ и статус памятника.</div>
+                    <div className="text-sky-400 font-bold">Текущий результат: {formatValue(safeComp).value} {formatValue(safeComp).unit}</div>
+                  </div>
+                </div>
+
+                <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl min-w-0">
+                  <h3 className="text-emerald-400 font-bold mb-3 uppercase tracking-widest text-xs">Доходный подход</h3>
+                  <div className="font-mono text-xs text-slate-300 bg-black/50 p-4 rounded-xl h-full border border-slate-800/50 break-words whitespace-pre-wrap">
+                    <div className="text-slate-500 mb-2 select-none">Прямая капитализация:</div>
+                    <div className="mb-2 text-emerald-300">V_inc = NOI / R_cap</div>
+                    <div className="mb-4 text-slate-500">Где NOI = ПВД - Vacancy - OPEX</div>
+                    <div className="text-slate-400 leading-relaxed mb-4">Стоимость определяется как отношение Чистого Операционного Дохода (NOI) к ставке капитализации (R_cap), отражающей риски.</div>
+                    <div className="text-emerald-400 font-bold">Текущий результат: {formatValue(safeInc).value} {formatValue(safeInc).unit}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

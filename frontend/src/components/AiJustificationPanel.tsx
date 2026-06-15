@@ -13,8 +13,8 @@ const AiJustificationPanel: React.FC<AiJustificationPanelProps> = ({ weights, ju
 
   const generateText = async () => {
     setIsLoading(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 2300));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2300));
 
     const approaches = [
       { name: 'доходный', dative: 'доходному', val: weights?.income ?? 0.34 },
@@ -41,8 +41,13 @@ const AiJustificationPanel: React.FC<AiJustificationPanelProps> = ({ weights, ju
       `Итоговая стоимость, полученная взвешенным согласованием, признана объективной, рыночно обоснованной и пригодной для использования в отчёте об оценке. Рекомендуется к принятию в качестве рыночной стоимости ОКН.`
     ].join('\n\n');
 
-    setIsLoading(false);
-    onJustificationTextChange(text);
+      onJustificationTextChange(text);
+    } catch (error) {
+      console.error('Ошибка генерации ИИ:', error);
+      onJustificationTextChange('Произошла ошибка при анализе данных. Попробуйте еще раз.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

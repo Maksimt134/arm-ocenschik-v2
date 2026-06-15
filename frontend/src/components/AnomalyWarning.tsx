@@ -60,7 +60,7 @@ const AnomalyWarning: React.FC<AnomalyWarningProps> = ({ comparative, income, co
   }
 
   return (
-    <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 animate-fade-in">
+    <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 animate-fade-in shadow-lg shadow-amber-500/5">
       <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
       <div className="min-w-0">
         <div className="text-amber-500 font-semibold text-sm">Обнаружено значительное расхождение подходов</div>

@@ -1,0 +1,1398 @@
+=== src/components/IncomeApproachPanel.tsx ===
+import React from 'react';
+import { ArrowLeft, ArrowRight, Percent, TrendingUp, AlertTriangle } from 'lucide-react';
+import { OknObject } from '../types';
+
+interface IncomeApproachPanelProps {
+  okn: OknObject;
+  setActiveTab: (tab: number) => void;
+}
+
+const IncomeApproachPanel: React.FC<IncomeApproachPanelProps> = ({ setActiveTab }) => {
+  // === КОНСТАНТЫ (по задаче) ===
+  const RENTABLE_AREA = 21878;      // м²
+  const RENT_RATE = 120000;         // руб/м² в год
+  const VACANCY_RATE = 0.12;        // 12%
+  const OPEX_RATE = 0.25;           // 25%
+  const CAP_RATE = 0.105;           // 10.5%
+
+  // === РАСЧЁТЫ С РЕАЛЬНЫМИ ФОРМУЛАМИ ===
+  const pvd = RENTABLE_AREA * RENT_RATE;                    // ПВД = Площадь * Ставка
+  const dvd = pvd * (1 - VACANCY_RATE);                     // ДВД = ПВД * (1 - Вакантность)
+  const noi = dvd * (1 - OPEX_RATE);                        // ЧОД = ДВД * (1 - OPEX)
+  const incomeValue = noi / CAP_RATE;                       // Итоговая стоимость = ЧОД / Ставка капитализации
+
+  // Доли для горизонтальной шкалы (от ДВД)
+  const noiShare = (1 - OPEX_RATE) * 100;                   // доля ЧОД
+  const opexShare = OPEX_RATE * 100;                        // доля OPEX
+
+  // Форматтеры
+  const formatBln = (n: number) => `${(n / 1_000_000_000).toFixed(2)} млрд ₽`;
+  const formatPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+  return (
+    <div className="max-w-6xl mx-auto py-8 px-4 space-y-6 animate-fadeIn">
+      {/* Neon Dark Header */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-emerald-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Доходный подход</h1>
+          <span className="ml-auto text-[10px] px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-slate-400 font-medium">ШАГ 4</span>
+        </div>
+        <p className="text-slate-400 text-sm">Капитализация чистого операционного дохода (ЧОД) от арендного использования ОКН. Все значения рассчитаны по формулам ниже.</p>
+      </div>
+
+      {/* 3 Metric Cards - вывод по задаче */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 1. Ставка капитализации */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-emerald-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <Percent className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">Ставка капитализации</div>
+          </div>
+          <div className="text-5xl font-black tabular-nums tracking-tighter text-emerald-400 group-hover:text-emerald-300 transition">{formatPct(CAP_RATE)}</div>
+          <div className="mt-2 text-[10px] text-emerald-400/60 font-medium">Фиксированная ставка капитализации</div>
+        </div>
+
+        {/* 2. ПВД (вычисленный) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-cyan-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-cyan-500/10 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">ПВД</div>
+          </div>
+          <div className="text-4xl font-black tabular-nums tracking-tighter text-cyan-400 group-hover:text-cyan-300 transition">{formatBln(pvd)}</div>
+          <div className="mt-2 text-[10px] text-cyan-400/60 font-medium">Потенциальный валовой доход = Площадь × Ставка</div>
+        </div>
+
+        {/* 3. Недозагрузка */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-red-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-red-500/10 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">Недозагрузка</div>
+          </div>
+          <div className="text-5xl font-black tabular-nums tracking-tighter text-red-400 group-hover:text-red-300 transition">{formatPct(VACANCY_RATE)}</div>
+          <div className="mt-2 text-[10px] text-red-400/60 font-medium">Коэффициент вакантности / недозагрузки</div>
+        </div>
+      </div>
+
+      {/* Горизонтальный прогресс-бар (flex) - доли ЧОД и OPEX от ДВД */}
+      <div>
+        <h3 className="text-lg font-semibold text-white tracking-tight mb-3">Структура доходов и расходов</h3>
+        <div className="flex w-full h-8 rounded-full overflow-hidden border border-slate-700 bg-slate-950 shadow-inner">
+          <div
+            className="bg-emerald-500 flex items-center justify-center text-[11px] font-bold text-white tracking-[1px] transition-all"
+            style={{ width: `${noiShare}%` }}
+          >
+            ЧОД
+          </div>
+          <div
+            className="bg-red-500 flex items-center justify-center text-[11px] font-bold text-white tracking-[1px] transition-all"
+            style={{ width: `${opexShare}%` }}
+          >
+            OPEX
+          </div>
+        </div>
+        <div className="flex justify-between mt-2 text-xs px-1">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <span className="inline-block w-3 h-3 bg-emerald-500 rounded" />
+            Чистый операционный доход (ЧОД) <span className="font-mono text-emerald-400/80">{noiShare.toFixed(0)}%</span>
+          </div>
+          <div className="flex items-center gap-2 text-red-400">
+            <span className="inline-block w-3 h-3 bg-red-500 rounded" />
+            Операционные расходы (OPEX) <span className="font-mono text-red-400/80">{opexShare.toFixed(0)}%</span>
+          </div>
+        </div>
+        <div className="mt-1 text-[10px] text-slate-500 text-center">
+          ДВД = {formatBln(dvd)} → ЧОД = ДВД × (1 − OPEX) = {formatBln(noi)}
+        </div>
+      </div>
+
+      {/* Итоговая стоимость (вычисленная по формуле) */}
+      <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 text-center shadow-xl">
+        <div className="text-xs uppercase tracking-[2px] text-emerald-400/70 font-medium mb-1">ИТОГОВАЯ СТОИМОСТЬ (Доходный подход)</div>
+        <div className="text-4xl font-black tabular-nums tracking-[-1.5px] text-emerald-400 font-mono">{formatBln(incomeValue)}</div>
+        <div className="text-[10px] text-slate-500 mt-1">ЧОД / Ставка капитализации</div>
+      </div>
+
+      {/* Navigation - обязательно сохраняем флоу */}
+      <div className="mt-8 flex items-center justify-between gap-4">
+        <button
+          onClick={() => setActiveTab(3)}
+          className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-300 border border-slate-700 font-semibold rounded-xl flex items-center gap-2 transition active:scale-[0.985]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Назад к Сравнительному подходу
+        </button>
+        <button
+          onClick={() => setActiveTab(5)}
+          className="px-8 py-3.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition shadow-lg shadow-sky-900/50 flex items-center gap-2 active:scale-[0.985]"
+        >
+          Далее: Затратный подход <ArrowRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default IncomeApproachPanel;
+
+=== src/components/CostApproachPanel.tsx ===
+import React from 'react';
+import { ArrowLeft, ArrowRight, Hammer, MapPin, TrendingDown } from 'lucide-react';
+import { OknObject } from '../types';
+
+interface CostApproachPanelProps {
+  okn: OknObject;
+  setActiveTab: (tab: number) => void;
+}
+
+const CostApproachPanel: React.FC<CostApproachPanelProps> = ({ setActiveTab }) => {
+  // === КОНСТАНТЫ (по задаче) ===
+  const LAND_AREA = 5000;           // м² земли
+  const LAND_PRICE = 640000;        // руб/м²
+  const BUILDING_AREA = 24308;      // м² здания
+  const BUILD_PRICE = 240000;       // руб/м² строительства (воссоздание)
+  const PHYS_DEPR = 0.15;           // 15% физический износ
+  const FUNC_DEPR = 0.10;           // 10% функциональный износ
+  const ECON_DEPR = 0.05;           // 5% экономическое устаревание
+
+  // === РАСЧЁТЫ С РЕАЛЬНЫМИ ФОРМУЛАМИ ===
+  const landValue = LAND_AREA * LAND_PRICE;                                 // Стоимость земли = Площадь земли × Цена земли
+  const replacementCost = BUILDING_AREA * BUILD_PRICE;                      // Стоимость строительства (замещения) = Площадь здания × Цена стройки
+  const accumDepRate = PHYS_DEPR + FUNC_DEPR + ECON_DEPR;                   // Суммарная ставка износа
+  const accumDepValue = replacementCost * accumDepRate;                     // Накопленный износ = Стоимость строительства × (физ + функц + экон)
+  const costValue = landValue + (replacementCost - accumDepValue);          // Итоговая стоимость = Стоимость земли + (Стоимость строительства − Накопленный износ)
+
+  // Форматтеры
+  const formatBln = (n: number) => `${(n / 1_000_000_000).toFixed(2)} млрд ₽`;
+  const formatPct = (n: number) => `${(n * 100).toFixed(0)}%`;
+
+  // Доли износа для баров (в % от replacementCost)
+  const physPct = PHYS_DEPR * 100;
+  const funcPct = FUNC_DEPR * 100;
+  const econPct = ECON_DEPR * 100;
+
+  return (
+    <div className="max-w-6xl mx-auto py-8 px-4 space-y-6 animate-fadeIn">
+      {/* Neon Dark Header */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+            <Hammer className="w-5 h-5 text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Затратный подход</h1>
+          <span className="ml-auto text-[10px] px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-slate-400 font-medium">ШАГ 5</span>
+        </div>
+        <p className="text-slate-400 text-sm">Расчёт восстановительной стоимости за вычетом всех видов накопленного износа + стоимость земельного участка. Все цифры — результат формул.</p>
+      </div>
+
+      {/* 3 Metric Cards - вывод по задаче */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 1. Стоимость земельного участка */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-emerald-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">Стоимость земельного участка</div>
+          </div>
+          <div className="text-4xl font-black tabular-nums tracking-tighter text-emerald-400 group-hover:text-emerald-300 transition">{formatBln(landValue)}</div>
+          <div className="mt-2 text-[10px] text-emerald-400/60 font-medium">Земля = Площадь земли × Цена за м²</div>
+        </div>
+
+        {/* 2. Стоимость замещения (строительства) */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-cyan-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-cyan-500/10 rounded-lg">
+              <Hammer className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">Стоимость замещения</div>
+          </div>
+          <div className="text-4xl font-black tabular-nums tracking-tighter text-cyan-400 group-hover:text-cyan-300 transition">{formatBln(replacementCost)}</div>
+          <div className="mt-2 text-[10px] text-cyan-400/60 font-medium">Восстановительная стоимость = Площадь здания × Цена строительства</div>
+        </div>
+
+        {/* 3. Накопленный износ */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl hover:border-orange-500/40 transition-all duration-200 group">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 bg-orange-500/10 rounded-lg">
+              <TrendingDown className="w-4 h-4 text-orange-400" />
+            </div>
+            <div className="text-sm font-medium text-slate-400">Накопленный износ</div>
+          </div>
+          <div className="text-5xl font-black tabular-nums tracking-tighter text-orange-400 group-hover:text-orange-300 transition">{formatPct(accumDepRate)}</div>
+          <div className="mt-2 text-[10px] text-orange-400/60 font-medium">Сумма всех видов износа (физ. + функ. + экон.)</div>
+        </div>
+      </div>
+
+      {/* Визуальный блок Декомпозиция износа с 3 прогресс-барами */}
+      <div>
+        <h3 className="text-lg font-semibold text-white tracking-tight mb-4">Декомпозиция износа здания</h3>
+        <div className="space-y-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          {/* Физический износ */}
+          <div>
+            <div className="flex justify-between items-baseline text-sm mb-1.5">
+              <span className="text-slate-300 font-medium">Физический износ</span>
+              <span className="font-mono font-bold text-red-400 tabular-nums">{formatPct(PHYS_DEPR)} <span className="text-xs text-slate-500">({formatBln(replacementCost * PHYS_DEPR)})</span></span>
+            </div>
+            <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${physPct}%` }} />
+            </div>
+          </div>
+
+          {/* Функциональный износ */}
+          <div>
+            <div className="flex justify-between items-baseline text-sm mb-1.5">
+              <span className="text-slate-300 font-medium">Функциональный износ</span>
+              <span className="font-mono font-bold text-orange-400 tabular-nums">{formatPct(FUNC_DEPR)} <span className="text-xs text-slate-500">({formatBln(replacementCost * FUNC_DEPR)})</span></span>
+            </div>
+            <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div className="h-full bg-orange-500 rounded-full transition-all" style={{ width: `${funcPct}%` }} />
+            </div>
+          </div>
+
+          {/* Экономическое устаревание */}
+          <div>
+            <div className="flex justify-between items-baseline text-sm mb-1.5">
+              <span className="text-slate-300 font-medium">Экономическое устаревание</span>
+              <span className="font-mono font-bold text-yellow-400 tabular-nums">{formatPct(ECON_DEPR)} <span className="text-xs text-slate-500">({formatBln(replacementCost * ECON_DEPR)})</span></span>
+            </div>
+            <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+              <div className="h-full bg-yellow-500 rounded-full transition-all" style={{ width: `${econPct}%` }} />
+            </div>
+          </div>
+
+          {/* Итог накопленного износа */}
+          <div className="pt-2 border-t border-slate-800 text-xs text-slate-400 flex justify-between">
+            <span>Накопленный износ (всего)</span>
+            <span className="font-mono text-orange-400 font-semibold">{formatPct(accumDepRate)} = {formatBln(accumDepValue)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Итоговая стоимость по затратному подходу */}
+      <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-5 text-center shadow-xl">
+        <div className="text-xs uppercase tracking-[2px] text-amber-400/70 font-medium mb-1">ИТОГОВАЯ СТОИМОСТЬ (Затратный подход)</div>
+        <div className="text-4xl font-black tabular-nums tracking-[-1.5px] text-amber-400 font-mono">{formatBln(costValue)}</div>
+        <div className="text-[10px] text-slate-500 mt-1">Земля + (Стоимость строительства − Накопленный износ)</div>
+      </div>
+
+      {/* Navigation - обязательно сохраняем флоу шагов */}
+      <div className="mt-8 flex items-center justify-between gap-4">
+        <button
+          onClick={() => setActiveTab(4)}
+          className="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-300 border border-slate-700 font-semibold rounded-xl flex items-center gap-2 transition active:scale-[0.985]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Назад к Доходному подходу
+        </button>
+        <button
+          onClick={() => setActiveTab(6)}
+          className="px-8 py-3.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl transition shadow-lg shadow-sky-900/50 flex items-center gap-2 active:scale-[0.985]"
+        >
+          Далее: Результат оценки <ArrowRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CostApproachPanel;
+
+=== src/components/CashflowChart.tsx ===
+import React, { useState } from 'react';
+import {
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+  Label,
+} from 'recharts';
+
+export const CashflowChart: React.FC = () => {
+  const [showMethodology, setShowMethodology] = useState(false);
+
+  const data = [
+    { year: '1 год', Базовый: 1.60, Оптимистичный: 1.68, Пессимистичный: 1.52, Стоимость: 19.7 },
+    { year: '2 года', Базовый: 3.25, Оптимистичный: 3.44, Пессимистичный: 3.06, Стоимость: 19.7 },
+    { year: '3 года', Базовый: 4.95, Оптимистичный: 5.29, Пессимистичный: 4.62, Стоимость: 19.7 },
+    { year: '4 года', Базовый: 6.70, Оптимистичный: 7.23, Пессимистичный: 6.20, Стоимость: 19.7 },
+    { year: '5 лет', Базовый: 8.50, Оптимистичный: 9.27, Пессимистичный: 7.80, Стоимость: 19.7 },
+    { year: '6 лет', Базовый: 10.35, Оптимистичный: 11.41, Пессимистичный: 9.42, Стоимость: 19.7 },
+    { year: '7 лет', Базовый: 12.26, Оптимистичный: 13.66, Пессимистичный: 11.06, Стоимость: 19.7 },
+    { year: '8 лет', Базовый: 14.23, Оптимистичный: 16.02, Пессимистичный: 12.72, Стоимость: 19.7 },
+    { year: '9 лет', Базовый: 16.26, Оптимистичный: 18.50, Пессимистичный: 14.40, Стоимость: 19.7 },
+    { year: '10 лет', Базовый: 18.35, Оптимистичный: 21.10, Пессимистичный: 16.10, Стоимость: 19.7 },
+    { year: '11 лет', Базовый: 20.50, Оптимистичный: 23.83, Пессимистичный: 17.82, Стоимость: 19.7 },
+    { year: '12 лет', Базовый: 22.71, Оптимистичный: 26.70, Пессимистичный: 19.56, Стоимость: 19.7 },
+  ];
+
+  const CashflowTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    const colorMap: Record<string, string> = {
+      'Оптимистичный': '#0ea5e9',
+      'Базовый': '#10b981',
+      'Пессимистичный': '#f97316',
+    };
+    return (
+      <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 text-xs shadow-2xl">
+        <div className="font-medium text-slate-200 mb-1.5">{label}</div>
+        {payload.map((entry: any, index: number) => {
+          const seriesColor = colorMap[entry.dataKey] || '#64748b';
+          return (
+            <div key={index} className="flex items-center justify-between gap-3" style={{ color: seriesColor }}>
+              <span>{entry.name}</span>
+              <span className="font-mono font-semibold text-white tabular-nums">{Number(entry.value).toFixed(2)} млрд ₽</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-white">График окупаемости</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Накопленный ЧОД за 12 лет</p>
+          </div>
+          <button
+            onClick={() => setShowMethodology(!showMethodology)}
+            className="flex items-center gap-1 px-2 py-0.5 text-[#3b82f6] hover:text-blue-400 transition-colors text-xs font-medium"
+          >
+            <span className="inline-block w-3.5 h-3.5 rounded-full border border-[#3b82f6]/50 text-[9px] leading-[13px] text-center align-middle">i</span>
+            Как это считалось?
+          </button>
+        </div>
+        <div className="text-[10px] px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-slate-400 font-medium">
+          млрд ₽
+        </div>
+      </div>
+
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${showMethodology ? 'max-h-[260px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="p-4 rounded-2xl bg-slate-800/90 backdrop-blur border border-slate-700 text-sm text-slate-300">
+          <div className="font-semibold text-white text-[13px] mb-2 tracking-tight">Методология доходного подхода</div>
+          <ul className="space-y-[5px] text-[12.5px] leading-tight">
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Базовый ЧОД 1-го года: 1.600 млрд ₽.</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Арендопригодная площадь здания: 21 878 кв. м (Жилье 65%, Коммерция 25%).</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Учтена нормативная вакантность помещений 12% и операционные расходы 25%.</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Модель учитывает ежегодную индексацию арендных ставок на уровне 3%.</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Расчет учитывает 3 сценария индексации ЧОД (1%, 3%, 5%).</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Точка пересечения (окупаемости) достигается на 11-й год при ставке капитализации 10.5% (базовый сценарий).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="w-full h-72 -mx-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 25, right: 20, left: 0, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.6} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#1e293b" vertical={false} />
+            <XAxis
+              dataKey="year"
+              tick={{ fill: '#64748b', fontSize: 9 }}
+              axisLine={{ stroke: '#475569' }}
+              tickLine={{ stroke: '#475569' }}
+              angle={-15}
+              textAnchor="end"
+              height={50}
+              interval={0}
+            />
+            <YAxis
+              tick={{ fill: '#64748b', fontSize: 10 }}
+              axisLine={{ stroke: '#475569' }}
+              tickLine={{ stroke: '#475569' }}
+              domain={[0, 28]}
+              width={30}
+            />
+            <Tooltip content={CashflowTooltip} />
+            <Legend
+              wrapperStyle={{ color: '#94a3b8', fontSize: '11px', paddingTop: '4px' }}
+              iconType="circle"
+            />
+            <Line
+              type="monotone"
+              dataKey="Оптимистичный"
+              stroke="#0ea5e9"
+              strokeDasharray="3 3"
+              strokeWidth={2}
+              name="Оптимистичный прогноз"
+            />
+            <Area
+              type="monotone"
+              dataKey="Базовый"
+              stroke="#10b981"
+              fill="url(#colorIncome)"
+              strokeWidth={3}
+              name="Базовый прогноз"
+            />
+            <Line
+              type="monotone"
+              dataKey="Пессимистичный"
+              stroke="#f97316"
+              strokeDasharray="3 3"
+              strokeWidth={2}
+              name="Пессимистичный прогноз"
+            />
+            <ReferenceLine
+              y={19.7}
+              stroke="#a78bfa"
+              strokeDasharray="4 4"
+              strokeWidth={2}
+            >
+              <Label
+                value="Рыночная стоимость (19.7 млрд)"
+                position="insideTopLeft"
+                fill="#a78bfa"
+                fontSize={12}
+              />
+            </ReferenceLine>
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+export default CashflowChart;
+
+=== src/components/WeightsChart.tsx ===
+import React, { useState } from 'react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+export const WeightsChart: React.FC = () => {
+  const [showMethodology, setShowMethodology] = useState(false);
+
+  const data = [
+    { name: 'Сравнительный подход', value: 47, price: '27.8 млрд ₽', fill: '#0ea5e9' },
+    { name: 'Доходный подход', value: 35, price: '15.2 млрд ₽', fill: '#10b981' },
+    { name: 'Затратный подход', value: 18, price: '7.3 млрд ₽', fill: '#6366f1' },
+  ];
+
+  const WeightsTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-slate-950/90 backdrop-blur-md border border-[#0ea5e9]/40 rounded-xl px-3 py-2 text-xs shadow-2xl">
+        <div className="font-semibold text-white">{d.name}</div>
+        <div className="text-slate-300 mt-0.5 tabular-nums">{d.value}% <span className="text-slate-500">·</span> {d.price}</div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Веса подходов</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Структура согласования стоимости</p>
+        </div>
+        <button
+          onClick={() => setShowMethodology(!showMethodology)}
+          className="flex items-center gap-1 px-2 py-0.5 text-[#3b82f6] hover:text-blue-400 transition-colors text-xs font-medium shrink-0"
+        >
+          <span className="inline-block w-3.5 h-3.5 rounded-full border border-[#3b82f6]/50 text-[9px] leading-[13px] text-center align-middle">i</span>
+          Как это считалось?
+        </button>
+      </div>
+
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${showMethodology ? 'max-h-[260px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="p-4 rounded-2xl bg-slate-800/90 backdrop-blur border border-slate-700 text-sm text-slate-300">
+          <div className="font-semibold text-white text-[13px] mb-2 tracking-tight">Логика согласования весов</div>
+          <ul className="space-y-[5px] text-[12.5px] leading-tight">
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Сравнительный подход (Вес 0.47): Максимальная достоверность. Расчет основан на верифицированной выборке из 3-х аналогичных памятников архитектуры в ЦАО Москвы.</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Доходный подход (Вес 0.35): Средняя достоверность. Базируется на экстракции ставок аренды, имеет волатильность из-за долгосрочного прогнозирования.</li>
+            <li className="flex gap-2"><span className="text-[#3b82f6] mt-[1px]">–</span> Затратный подход (Вес 0.18): Минимальный вес. Метод рассчитывает затраты на воссоздание коробки здания и стоимость земли, но принципиально не способен учесть нематериальную историко-культурную и архитектурную ценность ОКН.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="w-full h-72 -mx-2 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <defs>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.45" />
+              </filter>
+            </defs>
+
+            {/* Glow layer for soft neon backdrop */}
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={68}
+              outerRadius={112}
+              dataKey="value"
+              paddingAngle={4}
+              stroke="none"
+              filter="url(#glow)"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`g-${index}`} fill={entry.fill} fillOpacity={0.18} />
+              ))}
+            </Pie>
+
+            {/* Main donut with drop-shadow for volumetric neon glow effect on segments */}
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={75}
+              outerRadius={105}
+              dataKey="value"
+              nameKey="name"
+              paddingAngle={4}
+              stroke="none"
+              filter="url(#drop-shadow)"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`c-${index}`} fill={entry.fill} stroke="none" />
+              ))}
+            </Pie>
+
+            <Tooltip content={WeightsTooltip} />
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Centered total value */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="text-center -mt-1">
+            <div className="text-[9px] font-medium tracking-[1.5px] text-slate-400">ИТОГО</div>
+            <div
+              className="text-[21px] font-bold text-white leading-none tabular-nums"
+              style={{ textShadow: '0 0 4px #64748b, 0 0 10px rgba(100, 116, 139, 0.4)' }}
+            >
+              19.7 млрд ₽
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-1 text-center text-[10px]">
+        {data.map((entry, index) => (
+          <div key={index}>
+            <div className="font-mono font-bold text-base tabular-nums" style={{ color: entry.fill }}>
+              {entry.value}%
+            </div>
+            <div className="text-slate-400 leading-none mt-px">{entry.name.replace(' подход', '')}</div>
+            <div className="text-[9px] text-slate-500 font-medium tabular-nums mt-px">{entry.price}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default WeightsChart;
+
+=== src/components/AnaloguesPanel.tsx ===
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  SlidersHorizontal, 
+  ArrowRight, 
+  List, 
+  Info, 
+  AlertTriangle, 
+  Trash2, 
+  Plus, 
+  X, 
+  Check, 
+  RotateCcw, 
+  Copy, 
+  Calculator,
+  BarChart3,
+  TrendingUp
+} from 'lucide-react';
+import { OknObject, Analogue, ManualAdjustment } from '../types';
+import { LOCAL_MOCK_ANALOGUES, LOCAL_MOCK_ANALOGUES_ROSSIYA } from '../data/mockAnalogues';
+
+interface AnaloguesPanelProps {
+  okn: OknObject;
+  adjustments: Record<string, ManualAdjustment>;
+  setAdjustments: React.Dispatch<React.SetStateAction<Record<string, ManualAdjustment>>>;
+  setActiveTab: (tab: number) => void;
+  analogues: Analogue[];
+  setAnalogues: (analogues: Analogue[]) => void;
+  selectedAnalogId: string;
+  setSelectedAnalogId: (id: string) => void;
+}
+
+interface AddAnalogFormData {
+  address: string;
+  area: string;
+  year_built: string;
+  walls_material: string;
+  floors: string;
+  base_price: string;
+  is_okn: boolean;
+  wear_pct: string;
+}
+
+const EMPTY_FORM: AddAnalogFormData = {
+  address: '',
+  area: '',
+  year_built: '',
+  walls_material: 'Кирпич',
+  floors: '3',
+  base_price: '',
+  is_okn: false,
+  wear_pct: '30',
+};
+
+const ADJ_FIELDS = [
+  { id: 'area', label: 'Площадь' },
+  { id: 'condition', label: 'Состояние' },
+  { id: 'transport', label: 'Транспорт' },
+  { id: 'view', label: 'Расположение' },
+  { id: 'infrastructure', label: 'Назначение' }
+] as const;
+
+const getSimilarityScore = (target: OknObject, analog: Analogue): number => {
+  let score = 100;
+  
+  const tArea = (target.area && !isNaN(target.area)) ? target.area : 1000;
+  const aArea = (analog.area && !isNaN(analog.area)) ? analog.area : 1000;
+  const areaDiff = Math.abs(tArea - aArea) / tArea;
+  score -= Math.min(areaDiff * 30, 30);
+
+  const tYear = (target.year_built && !isNaN(target.year_built)) ? target.year_built : 1900;
+  const aYear = (analog.year_built && !isNaN(analog.year_built)) ? analog.year_built : 1900;
+  const yearDiff = Math.abs(tYear - aYear);
+  score -= Math.min(yearDiff * 0.5, 20);
+
+  const tOkn = target.is_okn ? 1 : 0;
+  const aOkn = (analog.is_okn === 1.0 || analog.is_okn === true || analog.is_okn === 1) ? 1 : 0;
+  if (tOkn !== aOkn) score -= 25;
+
+  const tWear = (target.wear_pct && !isNaN(target.wear_pct)) ? target.wear_pct : 30;
+  const aWear = (analog.wear_pct && !isNaN(analog.wear_pct)) ? analog.wear_pct : 30;
+  score -= Math.min(Math.abs(tWear - aWear) * 0.5, 10);
+
+  return Math.max(45, Math.min(99, Math.round(score)));
+};
+
+const AnaloguesPanel: React.FC<AnaloguesPanelProps> = ({
+  okn,
+  adjustments,
+  setAdjustments,
+  setActiveTab,
+  analogues,
+  setAnalogues,
+  selectedAnalogId,
+  setSelectedAnalogId
+}) => {
+  const [filterOkn, setFilterOkn] = useState<'all' | 'okn' | 'non_okn'>('all');
+  const [filterAreaTolerance, setFilterAreaTolerance] = useState<number>(30);
+  const [loading, setLoading] = useState(false);
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState<AddAnalogFormData>(EMPTY_FORM);
+  const [itemToDelete, setItemToDelete] = useState<Analogue | null>(null);
+  const [deletedAnalogues, setDeletedAnalogues] = useState<Analogue[]>([]);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  // Динамический цвет индикатора выбранных аналогов
+  const getSelectionIndicatorClass = (count: number): string => {
+    if (count === 0) {
+      return 'bg-rose-500';
+    }
+    if (count <= 2) {
+      return 'bg-amber-500';
+    }
+    // 3 и более — достаточно для расчёта
+    return 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]';
+  };
+
+  const selectedIds = selectedAnalogId ? selectedAnalogId.split(',') : [];
+
+  const calculateAdjustedPrice = (basePrice: number, adj: ManualAdjustment | undefined): number => {
+    if (!adj) return basePrice || 0;
+    const factor =
+      (1 + (adj.area || 0) / 100) *
+      (1 + (adj.condition || 0) / 100) *
+      (1 + (adj.transport || 0) / 100) *
+      (1 + (adj.view || 0) / 100) *
+      (1 + (adj.infrastructure || 0) / 100);
+    return Math.round((basePrice || 0) * factor);
+  };
+
+  // === Динамическая аналитика для дашборда ===
+  const selectedAnalogues = useMemo(
+    () => analogues.filter(a => selectedIds.includes(a.id)),
+    [analogues, selectedIds]
+  );
+  const numSelected = selectedAnalogues.length;
+
+  const avgOriginalPrice = useMemo(() => {
+    if (numSelected === 0) return 0;
+    const sum = selectedAnalogues.reduce((s, a) => s + (a.base_price || 0), 0);
+    return sum / numSelected;
+  }, [selectedAnalogues, numSelected]);
+
+  const avgAdjustedPrice = useMemo(() => {
+    if (numSelected === 0) return 0;
+    const sum = selectedAnalogues.reduce((s, a) => {
+      const adj = adjustments[a.id];
+      return s + calculateAdjustedPrice(a.base_price || 0, adj);
+    }, 0);
+    return sum / numSelected;
+  }, [selectedAnalogues, numSelected, adjustments]);
+
+  useEffect(() => {
+    const fetchAnalogues = async () => {
+      setLoading(true);
+      
+      const allMocks = [...LOCAL_MOCK_ANALOGUES, ...LOCAL_MOCK_ANALOGUES_ROSSIYA];
+      let baseMocks: Analogue[] = [];
+
+      if (okn.name?.includes('Сретенский') || okn.id?.includes('sretenskiy')) {
+        baseMocks = allMocks.slice(0, 7);
+      } else if (okn.name?.includes('Колпачный') || okn.id?.includes('kolpachny')) {
+        baseMocks = allMocks.slice(7, 14);
+      } else if (okn.name?.includes('Спиридоновка') || okn.id?.includes('spiridonovka')) {
+        baseMocks = allMocks.slice(14, 21);
+      } else {
+        baseMocks = allMocks;
+      }
+
+      let filtered = baseMocks.filter(analog => {
+        if (filterOkn === 'okn' && analog.is_okn === 0.0) return false;
+        if (filterOkn === 'non_okn' && analog.is_okn === 1.0) return false;
+        
+        const safeArea = (okn.area && !isNaN(okn.area)) ? okn.area : 1000;
+        const minArea = safeArea * (1.0 - filterAreaTolerance / 100);
+        const maxArea = safeArea * (1.0 + filterAreaTolerance / 100);
+        return analog.area >= minArea && analog.area <= maxArea;
+      });
+
+      if (filtered.length < 5) {
+        filtered = baseMocks;
+      }
+
+      filtered = filtered.map(analog => {
+        const similarity = getSimilarityScore(okn, analog);
+        const safeBasePrice = analog.base_price && !isNaN(analog.base_price) ? analog.base_price : 0;
+        const safeArea = analog.area && !isNaN(analog.area) && analog.area > 0 ? analog.area : 1;
+        
+        return {
+          ...analog,
+          similarity,
+          price_per_sqm: Math.round(safeBasePrice / safeArea)
+        };
+      });
+
+      filtered.sort((a, b) => b.similarity - a.similarity);
+
+      setAnalogues(filtered);
+      if (filtered.length > 0 && !selectedAnalogId) {
+        setSelectedAnalogId(filtered[0].id);
+      }
+      setLoading(false);
+    };
+
+    fetchAnalogues();
+  }, [okn, filterOkn, filterAreaTolerance]);
+
+  const toggleSelection = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedAnalogId(selectedIds.filter(x => x !== id).join(','));
+    } else {
+      setSelectedAnalogId([...selectedIds, id].join(','));
+    }
+  };
+
+  useEffect(() => {
+    selectedIds.forEach(id => {
+      if (!adjustments[id]) {
+        setAdjustments(prev => ({
+          ...prev,
+          [id]: { area: 0, condition: 0, transport: 0, view: 0, infrastructure: 0, justification: '' }
+        }));
+      }
+    });
+  }, [selectedAnalogId]);
+
+  const formatPrice = (val: number) => {
+    if (isNaN(val) || !isFinite(val)) return '0 ₽';
+    if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(2)} млрд ₽`;
+    if (val >= 1_000_000) return `${Math.round(val / 1_000_000)} млн ₽`;
+    return new Intl.NumberFormat('ru-RU').format(val) + ' ₽';
+  };
+
+  const isAllJustificationsValid = () => {
+    if (selectedIds.length === 0) return false;
+    for (const id of selectedIds) {
+      const activeAdj = adjustments[id];
+      if (!activeAdj) continue;
+      const hasCorrections = activeAdj.area !== 0 || activeAdj.condition !== 0 || activeAdj.transport !== 0 || activeAdj.view !== 0 || activeAdj.infrastructure !== 0;
+      if (hasCorrections && activeAdj.justification.trim().length < 5) return false;
+    }
+    return true;
+  };
+
+  const handleDeleteAnalog = (id: string) => {
+    const analog = analogues.find(a => a.id === id);
+    if (analog) setItemToDelete(analog);
+  };
+
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+    setDeletedAnalogues(prev => [itemToDelete, ...prev]);
+    const updated = analogues.filter(a => a.id !== itemToDelete.id);
+    setAnalogues(updated);
+
+    if (selectedIds.includes(itemToDelete.id)) {
+      const nextIds = selectedIds.filter(x => x !== itemToDelete.id);
+      setSelectedAnalogId(nextIds.length > 0 ? nextIds.join(',') : updated.length > 0 ? updated[0].id : '');
+    }
+    setItemToDelete(null);
+  };
+
+  const handleRestoreLast = () => {
+    if (deletedAnalogues.length === 0) return;
+    const toRestore = deletedAnalogues[0];
+    const newDeleted = deletedAnalogues.slice(1);
+    const next = [...analogues, toRestore].sort((a, b) => b.similarity - a.similarity);
+    setAnalogues(next);
+    setDeletedAnalogues(newDeleted);
+    setSelectedAnalogId([...selectedIds, toRestore.id].join(','));
+  };
+
+  const handleSliderChange = (id: string, field: keyof ManualAdjustment, value: number) => {
+    setAdjustments(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || { area: 0, condition: 0, transport: 0, view: 0, infrastructure: 0, justification: '' }), [field]: value }
+    }));
+  };
+
+  const handleJustificationChange = (id: string, value: string) => {
+    setAdjustments(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] || { area: 0, condition: 0, transport: 0, view: 0, infrastructure: 0, justification: '' }), justification: value }
+    }));
+  };
+
+  const applyToAll = (sourceId: string) => {
+    const sourceAdjs = adjustments[sourceId];
+    if (!sourceAdjs) return;
+    
+    setAdjustments(prev => {
+      const newAdjs = { ...prev };
+      selectedIds.forEach(id => {
+        if (id !== sourceId) {
+          newAdjs[id] = { ...sourceAdjs };
+        }
+      });
+      return newAdjs;
+    });
+  };
+
+  const handleAddAnalog = () => {
+    const area = parseFloat(addForm.area);
+    const basePrice = parseFloat(addForm.base_price);
+    const yearBuilt = parseInt(addForm.year_built, 10);
+    const floors = parseInt(addForm.floors, 10);
+    const wearPct = parseFloat(addForm.wear_pct);
+
+    if (!addForm.address.trim() || isNaN(area) || isNaN(basePrice) || isNaN(yearBuilt)) return;
+
+    const newAnalog: Analogue = {
+      id: `manual-${Date.now()}`,
+      address: addForm.address.trim(),
+      area,
+      year_built: yearBuilt,
+      floors: isNaN(floors) ? 3 : floors,
+      walls_material: addForm.walls_material || 'Кирпич',
+      is_okn: addForm.is_okn ? 1.0 : 0.0,
+      wear_pct: isNaN(wearPct) ? 30 : wearPct,
+      dist_metro_min: 10,
+      infrastructure_rate: 4.0,
+      noise_rate: 2.5,
+      parking: 0,
+      view_rate: 3.5,
+      base_price: basePrice,
+      cyan_url: '',
+      similarity: 99,
+      price_per_sqm: (area && area > 0) ? Math.round(basePrice / area) : 0,
+    };
+
+    const updated = [newAnalog, ...analogues];
+    setAnalogues(updated);
+    setSelectedAnalogId(newAnalog.id);
+    setShowAddModal(false);
+    setAddForm(EMPTY_FORM);
+  };
+
+  const isAddFormValid = () => {
+    const area = parseFloat(addForm.area);
+    const basePrice = parseFloat(addForm.base_price);
+    const yearBuilt = parseInt(addForm.year_built, 10);
+    return (
+      addForm.address.trim().length > 3 &&
+      !isNaN(area) && area > 0 &&
+      !isNaN(basePrice) && basePrice > 0 &&
+      !isNaN(yearBuilt) && yearBuilt > 1700 && yearBuilt <= new Date().getFullYear()
+    );
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto py-4 px-4 space-y-4">
+      
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-md backdrop-blur-md shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
+            <SlidersHorizontal className="h-6 w-6 text-sky-400" />
+            Сравнительный подход (Шаг 3 из 6)
+          </h1>
+          <p className="text-sm text-slate-300 mt-3 leading-relaxed font-medium bg-sky-900/20 p-4 rounded-xl border border-sky-500/20">
+            Выберите подходящие аналоги для корректировки. Чем больше хороших аналогов вы выберете — тем точнее будет итоговая стоимость вашего объекта.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 shrink-0">
+          <Info className="h-4 w-4 text-sky-400 shrink-0" />
+          <span className="text-xs text-slate-300 font-medium">Охранный статус имеет двойной вес</span>
+        </div>
+      </div>
+
+      {/* Сводная аналитика по выборке — динамическая панель */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div className="flex items-center gap-2.5 mb-5">
+          <BarChart3 className="h-5 w-5 text-cyan-400" />
+          <div className="text-lg font-semibold text-white tracking-tight">Сводная аналитика по выборке</div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {/* 1. Количество выбранных аналогов */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-cyan-400/80 mb-1.5">
+              Количество выбранных аналогов
+            </div>
+            <div
+              className="text-5xl font-black font-mono text-cyan-400 tabular-nums tracking-[-2px] leading-none"
+              style={{ textShadow: '0 0 14px rgba(34,211,238,0.55)' }}
+            >
+              {numSelected}
+            </div>
+          </div>
+
+          {/* 2. Средняя исходная цена */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-cyan-400/80 mb-1.5">
+              Средняя исходная цена
+            </div>
+            <div
+              className="text-5xl font-black font-mono text-cyan-400 tabular-nums tracking-[-2px] leading-none"
+              style={{ textShadow: '0 0 14px rgba(34,211,238,0.55)' }}
+            >
+              {(avgOriginalPrice / 1_000_000_000).toFixed(2)}
+            </div>
+            <div className="text-[11px] text-cyan-400/70 font-medium mt-1">млрд ₽</div>
+          </div>
+
+          {/* 3. Средняя СКОРРЕКТИРОВАННАЯ цена */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-emerald-400/80 mb-1.5">
+              Средняя СКОРРЕКТИРОВАННАЯ цена
+            </div>
+            <div
+              className="text-5xl font-black font-mono text-emerald-400 tabular-nums tracking-[-2px] leading-none"
+              style={{ textShadow: '0 0 14px rgba(16,185,129,0.55)' }}
+            >
+              {(avgAdjustedPrice / 1_000_000_000).toFixed(2)}
+            </div>
+            <div className="text-[11px] text-emerald-400/70 font-medium mt-1">млрд ₽</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        
+        <div className="lg:col-span-7 flex flex-col h-full min-h-[500px]">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 shadow-md flex flex-col gap-4 h-full justify-between">
+            
+            <div className="flex flex-col gap-4 flex-1">
+              <div className="bg-slate-900/60 border border-slate-800/80 p-3 rounded-xl flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <div className={`h-2.5 w-2.5 rounded-full ${getSelectionIndicatorClass(selectedIds.length)}`}></div>
+                  <span className="text-slate-200 font-bold text-sm">
+                    Выбрано {selectedIds.length} из {analogues.length} аналогов.
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Мин. для расчета: 5</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/60">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <List className="h-4 w-4 text-sky-500" />
+                  <span>Найденные аналоги ({analogues.length})</span>
+                </h3>
+                <div className="flex items-center gap-2">
+                  {deletedAnalogues.length > 0 && (
+                    <button onClick={handleRestoreLast} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white text-xs font-semibold transition-all shrink-0">
+                      <RotateCcw className="h-3.5 w-3.5" /> Восстановить ({deletedAnalogues.length})
+                    </button>
+                  )}
+                  <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600/20 text-sky-400 border border-sky-500/30 hover:bg-sky-600/30 text-xs font-semibold transition">
+                    <Plus className="h-3.5 w-3.5" /> Добавить аналог
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/40 border border-slate-800/80 rounded-xl p-3 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-slate-400 font-medium text-[11px] uppercase tracking-wider">Статус:</span>
+                  <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+                    <button onClick={() => setFilterOkn('all')} className={`px-3 py-1.5 rounded-md transition-colors ${filterOkn === 'all' ? 'bg-slate-700 text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>Все</button>
+                    <button onClick={() => setFilterOkn('okn')} className={`px-3 py-1.5 rounded-md transition-colors ${filterOkn === 'okn' ? 'bg-slate-700 text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>ОКН</button>
+                    <button onClick={() => setFilterOkn('non_okn')} className={`px-3 py-1.5 rounded-md transition-colors ${filterOkn === 'non_okn' ? 'bg-slate-700 text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>Без ОКН</button>
+                  </div>
+                </div>
+
+                <div className="hidden md:block w-[1px] h-6 bg-slate-800"></div>
+
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="flex flex-col min-w-[120px]">
+                    <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wider">Площадь (±{filterAreaTolerance}%)</span>
+                    <span className="font-mono text-sky-400 text-xs font-bold mt-0.5">
+                      {Math.round((okn.area || 1000) * (1 - filterAreaTolerance/100))} - {Math.round((okn.area || 1000) * (1 + filterAreaTolerance/100))} м²
+                    </span>
+                  </div>
+                  <input type="range" min="10" max="50" step="5" value={filterAreaTolerance} onChange={(e) => setFilterAreaTolerance(Number(e.target.value))} className="flex-1 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-sky-500" />
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-3 flex-1">
+                  <svg className="animate-spin h-8 w-8 text-sky-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span className="text-xs text-slate-400">Пересчет матрицы сходства k-NN...</span>
+                </div>
+              ) : analogues.length === 0 ? (
+                <div className="text-center py-16 space-y-3 flex-1 flex flex-col justify-center">
+                  <div className="text-slate-600 text-4xl">📭</div>
+                  <p className="text-slate-400 text-sm">Нет объектов, соответствующих критериям</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar content-start">
+                    {analogues.slice(0, visibleCount).map((analog) => {
+                      const isSelected = selectedIds.includes(analog.id);
+                      const isManual = analog.id.startsWith('manual-');
+                      const pct = analog.similarity || 0;
+                      const adjForCard = adjustments[analog.id];
+                      const adjustedCard = calculateAdjustedPrice(analog.base_price || 0, adjForCard);
+
+                      return (
+                        <div
+                          key={analog.id}
+                          onClick={() => toggleSelection(analog.id)}
+                          className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col gap-3 group relative backdrop-blur-sm ${
+                            isSelected
+                              ? 'bg-slate-800 border-cyan-400 ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]'
+                              : 'bg-slate-900/60 border-slate-700 opacity-70 hover:opacity-100 hover:border-slate-500 shadow-sm'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                {isManual && <span className="px-2 py-0.5 text-[9px] font-bold bg-purple-500/20 text-purple-400 rounded">РУЧНОЙ</span>}
+                                <span className="text-[10px] text-slate-500 font-mono">Сходство</span>
+                                <span className="leading-none">{pct}%</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1">
+                            <div className="text-[11px] text-slate-400">Площадь: <span className="text-slate-200 font-bold">{analog.area?.toLocaleString('ru-RU')} м²</span></div>
+                            <div className="text-[11px] text-slate-400">Год: <span className="text-slate-200 font-bold">{analog.year_built}</span></div>
+                          </div>
+
+                          <div className="flex justify-between items-end w-full mt-auto pt-3 border-t border-slate-800/60">
+                            <div>
+                              <div className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Цена предложения</div>
+                              <div className="font-black text-white font-mono tracking-tight text-lg leading-none">
+                                {formatPrice(analog.base_price || 0)}
+                              </div>
+                              {isSelected && adjForCard && adjustedCard !== (analog.base_price || 0) && (
+                                <div className="text-emerald-400 font-mono text-xs tracking-tight mt-0.5">
+                                  Скорр.: {formatPrice(adjustedCard)}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteAnalog(analog.id); }} title="Удалить аналог" className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                              <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-sky-500 border-sky-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                {isSelected && <Check className="h-4 w-4 text-white" />}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {visibleCount < analogues.length && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                      <button
+                        onClick={() => setVisibleCount(prev => prev + 3)}
+                        className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold rounded-xl transition-colors border border-slate-700/50"
+                      >
+                        Показать еще 3 аналога
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-5 flex flex-col h-full overflow-y-auto pr-2 custom-scrollbar gap-4 pb-2">
+          {selectedIds.length > 0 ? (
+            <> 
+              <div className="bg-slate-900 border border-slate-700/80 rounded-2xl shadow-xl flex flex-col h-fit shrink-0 overflow-hidden">
+                <div className="p-4 bg-slate-800 border-b border-slate-700/80 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-emerald-400" />
+                    <span>Корректировки ({selectedIds.length})</span>
+                  </h3>
+                </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-950/30">
+                {selectedIds.map(id => {
+                  const selectedAnalog = analogues.find(a => a.id === id);
+                  if (!selectedAnalog) return null;
+                  
+                  const currentAdj = adjustments[id] || { area: 0, condition: 0, transport: 0, view: 0, infrastructure: 0, justification: '' };
+                  
+                  const safeBase = (selectedAnalog.base_price && !isNaN(selectedAnalog.base_price)) ? selectedAnalog.base_price : 0;
+                  
+                  const hasCorrections = currentAdj.area !== 0 || currentAdj.condition !== 0 || currentAdj.transport !== 0 || currentAdj.view !== 0 || currentAdj.infrastructure !== 0;
+                  const isValid = !hasCorrections || (currentAdj.justification && currentAdj.justification.trim().length >= 5);
+                  const isOpen = selectedAnalogId === id;
+
+                  return (
+                    <div key={id} className={`border rounded-2xl overflow-hidden transition-all duration-200 ${isOpen ? 'bg-slate-900 border-sky-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-600'}`}>
+                      <div
+                        className={`flex items-center justify-between cursor-pointer p-4 bg-slate-800/50 hover:bg-slate-800 ${isOpen ? 'rounded-t-xl' : 'rounded-xl'}`}
+                        onClick={() => setSelectedAnalogId(isOpen ? '' : id)}
+                      >
+                        <p className="text-sm font-bold text-white leading-tight flex-1 min-w-0 truncate" title={selectedAnalog.address}>
+                          {selectedAnalog.address}
+                        </p>
+                        <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isOpen ? 'rotate-180 bg-sky-500/10 text-sky-400' : 'bg-slate-700 text-slate-400'}`}>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      </div>
+
+                      {isOpen && (
+                        <div className="p-4 border-t border-slate-700 bg-slate-900/30">
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Корректировки</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); applyToAll(id); }}
+                              className="text-[10px] font-bold text-indigo-400 hover:text-white flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/30 border border-indigo-500/20 px-3 py-1.5 rounded-lg transition-colors"
+                              title="Применить эти настройки ко всем выбранным аналогам"
+                            >
+                              <Copy className="w-3.5 h-3.5" /> Применить ко всем
+                            </button>
+                          </div>
+
+                          {/* Динамическая скорректированная цена — неоновый emerald */}
+                          <div className="mb-4 p-4 bg-slate-950 border border-emerald-500/40 rounded-xl shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                            <div className="text-[10px] font-bold uppercase tracking-[1px] text-emerald-400 mb-1 flex items-center gap-1.5">
+                              <TrendingUp className="h-3.5 w-3.5" /> СКОРРЕКТИРОВАННАЯ ЦЕНА (мультипликативная модель)
+                            </div>
+                            <div className="text-3xl font-black text-emerald-400 tracking-[-1.5px] font-mono leading-none">
+                              {formatPrice(calculateAdjustedPrice(safeBase, currentAdj))}
+                            </div>
+                            <div className="text-[10px] text-emerald-500/70 mt-1">Базовая × (1 + Площадь/100) × (1 + Состояние/100) × (1 + Транспорт/100) × ...</div>
+                          </div>
+
+                          <div className="space-y-4">
+                            {ADJ_FIELDS.map(field => (
+                              <div key={field.id} className="group">
+                                <div className="flex justify-between text-xs font-medium text-slate-300 mb-1.5">
+                                  <span>{field.label}</span>
+                                  <span className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] ${currentAdj[field.id] > 0 ? 'bg-emerald-500/10 text-emerald-400' : currentAdj[field.id] < 0 ? 'bg-red-500/10 text-red-400' : 'bg-slate-800 text-slate-400'}`}>
+                                    {currentAdj[field.id] > 0 ? '+' : ''}{currentAdj[field.id] || 0}%
+                                  </span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="-30" max="30" step="5"
+                                  value={currentAdj[field.id] || 0}
+                                  onChange={(e) => handleSliderChange(id, field.id as keyof ManualAdjustment, Number(e.target.value))}
+                                  className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-sky-500 group-hover:accent-sky-400 transition-colors"
+                                />
+                                <div className="flex justify-between text-[9px] text-slate-500 mt-1 font-mono">
+                                  <span>-30%</span><span className="opacity-50">0%</span><span>+30%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {hasCorrections && (
+                            <div className="pt-4 border-t border-slate-700 mt-4">
+                              <div className="flex justify-between items-center text-[11px] mb-2">
+                                <span className="text-slate-300 font-bold uppercase tracking-wider">Обоснование (ФСО)</span>
+                                {!isValid && <span className="text-red-400 font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Обязательно</span>}
+                              </div>
+                              <textarea
+                                rows={2}
+                                value={currentAdj.justification}
+                                onChange={(e) => handleJustificationChange(id, e.target.value)}
+                                placeholder="Кратко опишите причину скидки или надбавки..."
+                                className={`w-full p-3 bg-slate-950/80 border ${isValid ? 'border-slate-700 focus:border-sky-500' : 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]'} rounded-xl text-xs text-slate-200 focus:outline-none transition-colors resize-none`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="p-4 bg-slate-800 border-t border-slate-700/80 shrink-0 rounded-b-2xl relative group">
+                <button
+                  disabled={selectedIds.length < 5 || !isAllJustificationsValid()}
+                  onClick={() => setActiveTab(4)}
+                  className={`w-full py-4 px-8 font-black text-sm uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 rounded-xl ${
+                    selectedIds.length >= 5 && isAllJustificationsValid()
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)] active:scale-[0.98]' 
+                      : 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700'
+                  }`}
+                >
+                  <span>Далее: Доходный подход</span>
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+                
+                {(selectedIds.length < 5 || !isAllJustificationsValid()) && (
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900 border border-slate-700 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap shadow-xl flex items-center gap-2">
+                    <Info className="h-4 w-4 text-sky-400" />
+                    {selectedIds.length < 5 
+                      ? `Выберите еще минимум ${5 - selectedIds.length} аналог(а)`
+                      : "Укажите причину корректировки для каждого измененного аналога"
+                    }
+                  </div>
+                )}
+              </div>
+            </div>
+            </>
+          ) : (
+            <div className="text-center py-24 text-slate-500 text-sm h-full flex flex-col items-center justify-center bg-slate-900/50 rounded-2xl border border-slate-800 shadow-inner">
+              <Calculator className="h-16 w-16 mb-4 opacity-30 text-sky-400" />
+              <p className="max-w-[250px]">Выберите аналоги в левой панели для начала расчетов</p>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Модальные окна (оставил без изменений) */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn" onClick={() => setItemToDelete(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white text-center mb-2">Удалить аналог?</h3>
+            <p className="text-sm text-slate-400 text-center mb-6">Вы уверены?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setItemToDelete(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition">Отмена</button>
+              <button onClick={confirmDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-lg shadow-red-500/20 transition">Удалить</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn" onClick={() => setShowAddModal(false)}>
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-xl bg-sky-500/15 flex items-center justify-center"><Plus className="h-5 w-5 text-sky-400" /></div>
+                <div>
+                  <h2 className="text-sm font-bold text-white">Добавить аналог вручную</h2>
+                  <p className="text-[10px] text-slate-500">Заполните данные объекта</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-slate-400 font-medium block mb-1.5">Адрес объекта *</label>
+                <input type="text" value={addForm.address} onChange={(e) => setAddForm(prev => ({ ...prev, address: e.target.value }))} className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-sky-500 transition" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 font-medium block mb-1.5">Площадь (м²) *</label>
+                  <input type="number" value={addForm.area} onChange={(e) => setAddForm(prev => ({ ...prev, area: e.target.value }))} className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono focus:border-sky-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-medium block mb-1.5">Год постройки *</label>
+                  <input type="number" value={addForm.year_built} onChange={(e) => setAddForm(prev => ({ ...prev, year_built: e.target.value }))} className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono focus:border-sky-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-medium block mb-1.5">Цена (руб) *</label>
+                  <input type="number" value={addForm.base_price} onChange={(e) => setAddForm(prev => ({ ...prev, base_price: e.target.value }))} className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 font-mono focus:border-sky-500" />
+                </div>
+              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer group pt-2">
+                <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${addForm.is_okn ? 'bg-sky-500 border-sky-500' : 'bg-slate-950 border-slate-700'}`} onClick={() => setAddForm(prev => ({ ...prev, is_okn: !prev.is_okn }))}>
+                  {addForm.is_okn && <Check className="h-3.5 w-3.5 text-white" />}
+                </div>
+                <span className="text-xs text-slate-300" onClick={() => setAddForm(prev => ({ ...prev, is_okn: !prev.is_okn }))}>Объект является ОКН</span>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+              <button onClick={() => setShowAddModal(false)} className="px-5 py-2.5 text-xs text-slate-400 hover:text-white border border-slate-800 rounded-xl hover:bg-slate-800 transition font-medium">Отмена</button>
+              <button onClick={handleAddAnalog} disabled={!isAddFormValid()} className="px-6 py-2.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-xl transition shadow-lg disabled:bg-slate-800 disabled:text-slate-650 flex items-center gap-1.5"><Plus className="h-3.5 w-3.5" /> Добавить</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AnaloguesPanel;

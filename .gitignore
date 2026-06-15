@@ -1,0 +1,18 @@
+# Зависимости
+node_modules/
+
+# Сборки и релизы (большие файлы)
+frontend/release/
+dist/
+build/
+
+# Исполняемые файлы
+*.exe
+*.nsis.7z
+
+# Бэкапы и логи
+backups/
+*.log
+
+# Другое
+.DS_Store

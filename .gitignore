@@ -1,18 +1,9 @@
-# Зависимости
 node_modules/
-
-# Сборки и релизы (большие файлы)
 frontend/release/
 dist/
 build/
-
-# Исполняемые файлы
-*.exe
-*.nsis.7z
-
-# Бэкапы и логи
 backups/
+*.exe
 *.log
-
-# Другое
+frontend/public/CNAME
 .DS_Store

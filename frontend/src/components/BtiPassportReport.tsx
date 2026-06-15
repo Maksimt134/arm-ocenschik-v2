@@ -18,6 +18,7 @@ interface BtiPassportReportProps {
   uchetNum: string;
   cadastral: string;
   address: string;
+  wear_pct?: number | string;
 }
 
 export const BtiPassportReport: React.FC<BtiPassportReportProps> = ({
@@ -25,7 +26,8 @@ export const BtiPassportReport: React.FC<BtiPassportReportProps> = ({
   details,
   uchetNum,
   cadastral,
-  address
+  address,
+  wear_pct
 }) => {
   const currentDate = new Date().toLocaleDateString('ru-RU');
   // Fallback to local image if blueprintDataUrl is not provided via props (since it's not in the interface)
@@ -119,7 +121,7 @@ export const BtiPassportReport: React.FC<BtiPassportReportProps> = ({
             </tr>
             <tr>
               <td style={{ border: '1px solid black', padding: '10px' }}>Процент физического износа</td>
-              <td style={{ border: '1px solid black', padding: '10px', textAlign: 'center', color: '#dc2626', fontWeight: 'bold' }}>{okn?.wear_pct || okn?.wearPercentage || 61}%</td>
+              <td style={{ border: '1px solid black', padding: '10px', textAlign: 'center', color: '#dc2626', fontWeight: 'bold' }}>{wear_pct ?? okn?.wear_pct ?? okn?.wearPercentage ?? details?.wear_pct ?? details?.wearPercentage ?? 61}%</td>
             </tr>
           </tbody>
         </table>

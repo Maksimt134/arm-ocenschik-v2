@@ -93,11 +93,12 @@ export function calculateCostBreakdown(okn: any): CostBreakdown {
       landValue: 5000000000,
       buildCostPerSqm: 1080535,
       replacementCost: 15000000000,
-      physicalDep: 400000000,
-      functionalDep: 200000000,
-      economicDep: 200000000,
-      totalDepPct: 0.0533,
-      accumulatedDepreciation: 800000000
+      physicalDep: 400000000 / 15500000000,
+      functionalDep: 200000000 / 15500000000,
+      economicDep: 200000000 / 15500000000,
+      totalDepPct: 800000000 / 15500000000,
+      accumulatedDepreciation: 800000000,
+      heritageReproductionCost: 500000000
     };
   }
 

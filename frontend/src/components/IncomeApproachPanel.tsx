@@ -122,37 +122,57 @@ const IncomeApproachPanel: React.FC<{ okn: OknObject; setActiveTab: (tab: number
         <p className="text-slate-400 text-sm mb-6">Сколько чистого дохода может приносить объект при текущих рыночных ставках аренды и типичных операционных расходах для исторических зданий.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-[#0f172a]/80 border border-[#1e293b] rounded-2xl p-6 shadow-lg relative group">
+          <div className="bg-[#0f172a]/80 border border-[#1e293b] rounded-2xl p-6 shadow-lg relative group flex flex-col h-full">
             <div className="flex items-center gap-2 text-slate-400 mb-4">
-              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">Потенциальный валовой доход</span>
+              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">1. Потенциальный валовой доход (ПВД)</span>
             </div>
             <div className="text-3xl font-bold text-white mb-2 tabular-nums">{pvdFmt.value} <span className="text-lg text-slate-400">{pvdFmt.unit}</span></div>
-            <div className="text-xs text-slate-500 mb-3">Площадь × Арендная ставка</div>
-            <div className="inline-block px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded font-mono">{breakdown.rentPerSqm.toLocaleString('ru-RU')} ₽ / м² / год</div>
+            <div className="text-xs text-slate-400 mb-4 flex-1 leading-relaxed">
+              <strong>Максимально возможный доход</strong>, если бы вся площадь сдавалась круглый год без единого простоя по рыночной ставке. Это идеальный, но недостижимый сценарий.
+            </div>
+            <div className="mt-auto pt-3 border-t border-slate-800">
+              <div className="inline-block px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] rounded font-mono">
+                Площадь × Арендная ставка
+              </div>
+            </div>
           </div>
 
-          <div className="bg-[#0f172a]/80 border border-[#1e293b] rounded-2xl p-6 shadow-lg relative group">
+          <div className="bg-[#0f172a]/80 border border-[#1e293b] rounded-2xl p-6 shadow-lg relative group flex flex-col h-full">
             <div className="flex items-center gap-2 text-sky-400 mb-4 drop-shadow-[0_0_5px_rgba(14,165,233,0.3)]">
-              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">Действительный валовой доход</span>
+              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">2. Действительный валовой доход (ДВД)</span>
             </div>
             <div className="text-3xl font-bold text-white mb-2 tabular-nums">{dvdFmt.value} <span className="text-lg text-slate-400">{dvdFmt.unit}</span></div>
-            <div className="text-xs text-slate-500 mb-3">ПВД за вычетом потерь от вакантности</div>
-            <div className="inline-block px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded font-mono">Вакантность {formatPct(breakdown.vacancy)}</div>
+            <div className="text-xs text-slate-400 mb-4 flex-1 leading-relaxed">
+              <strong>Реально ожидаемый доход.</strong> Здания никогда не сданы на 100%. Арендаторы съезжают, бывает ремонт. Поэтому мы вычитаем из ПВД неизбежные <em>потери от вакантности</em>.
+            </div>
+            <div className="mt-auto pt-3 border-t border-slate-800">
+              <div className="inline-block px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] rounded font-mono">
+                ПВД минус потери ({formatPct(breakdown.vacancy)})
+              </div>
+            </div>
           </div>
 
-          <div className="bg-[#0f172a]/80 border border-emerald-500/30 rounded-2xl p-6 shadow-[0_0_20px_rgba(52,211,153,0.1)] relative group">
+          <div className="bg-[#0f172a]/80 border border-emerald-500/30 rounded-2xl p-6 shadow-[0_0_20px_rgba(52,211,153,0.1)] relative group flex flex-col h-full">
             <div className="flex items-center gap-2 text-emerald-400 mb-4 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]">
-              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">Чистый операционный доход (ЧОД)</span>
+              <TrendingUp className="w-4 h-4" /> <span className="text-xs font-bold uppercase tracking-widest">3. Чистый операционный доход (ЧОД)</span>
             </div>
             <div className="text-3xl font-bold text-emerald-400 mb-2 tabular-nums">{noiFmt.value} <span className="text-lg text-emerald-500/70">{noiFmt.unit}</span></div>
-            <div className="text-xs text-slate-500 mb-3">ДВД за вычетом операционных расходов</div>
-            <div className="inline-block px-3 py-1 bg-[#1e293b] border border-[#334155] text-slate-300 text-xs rounded font-mono">Операционные расходы {formatPct(breakdown.opex)}</div>
+            <div className="text-xs text-slate-400 mb-4 flex-1 leading-relaxed">
+              <strong>Чистые деньги инвестора.</strong> Чтобы здание работало, нужно платить за ЖКУ, охрану, налоги и ремонт. Мы вычитаем <em>операционные расходы</em> из ДВД, чтобы получить чистую прибыль.
+            </div>
+            <div className="mt-auto pt-3 border-t border-emerald-900/50">
+              <div className="inline-block px-3 py-1 bg-[#1e293b] border border-[#334155] text-slate-300 text-[11px] rounded font-mono">
+                ДВД минус расходы ({formatPct(breakdown.opex)})
+              </div>
+            </div>
           </div>
 
           <div className="bg-[#080d14]/80 border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_20px_rgba(99,102,241,0.1)] relative group flex flex-col justify-center items-center text-center">
-            <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-2 drop-shadow-[0_0_5px_rgba(99,102,241,0.3)]">Ставка капитализации</div>
+            <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-2 drop-shadow-[0_0_5px_rgba(99,102,241,0.3)]">4. Ставка капитализации</div>
             <div className="text-5xl font-bold text-indigo-400 mb-3 drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">{formatPct(breakdown.capRate)}</div>
-            <div className="text-[10px] text-slate-500 px-4">Доходность, которую требует инвестор на капитал с учетом исторических рисков</div>
+            <div className="text-[11px] text-slate-400 px-2 mt-2 leading-relaxed">
+              Требуемая годовая доходность. Отражает риски. <strong>Стоимость = ЧОД ÷ Ставку.</strong> Чем выше риски (ставка), тем ниже цена здания.
+            </div>
           </div>
         </div>
       </div>

@@ -173,10 +173,14 @@ const AnaloguesPanel: React.FC<any> = ({ okn, setActiveTab, analogues = [], setA
             <BarChart3 className="w-6 h-6 text-sky-400" />
           </div>
           <div>
-            <h3 className="text-lg font-medium text-white mb-1 flex items-center gap-2">
-              Сводная аналитика по выборке
-              <button onClick={() => setActiveModal('analytics')} className="p-1 rounded-full bg-[#1e293b] hover:bg-sky-500/20 text-slate-400 hover:text-sky-400 transition-colors" title="Подробнее о расчетах">
-                <Info className="w-4 h-4" />
+            <h3 className="text-lg font-medium text-white mb-1 flex flex-wrap xl:flex-nowrap items-center gap-3">
+              <span className="whitespace-nowrap">Сводная аналитика по выборке</span>
+              <button 
+                onClick={() => setActiveModal('analytics')} 
+                className="flex items-center gap-2 text-sky-400 font-bold text-xs uppercase tracking-wider px-3 py-1.5 border border-sky-500/20 hover:border-sky-500/50 rounded-xl bg-sky-500/5 hover:bg-sky-500/10 transition-all whitespace-nowrap"
+              >
+                <Info className="w-4 h-4 shrink-0" />
+                Подробнее о расчетах выборки
               </button>
             </h3>
             <p className="text-slate-500 text-xs">Данные по {selectedCount} активным объектам</p>
@@ -398,18 +402,18 @@ const AnaloguesPanel: React.FC<any> = ({ okn, setActiveTab, analogues = [], setA
         <div className="space-y-5">
           <div>
             <strong className="text-sky-400 text-base mb-1 block">Средняя исходная цена</strong>
-            <p className="text-slate-400 leading-relaxed">
+            <p className="text-slate-100 leading-relaxed">
               Это простое среднее арифметическое рыночных цен всех выбранных аналогов (зданий). Эта цифра <strong>не учитывает</strong> размер вашего объекта. Аналоги могут быть намного меньше или больше вашего здания.
             </p>
           </div>
           <div>
             <strong className="text-emerald-400 text-base mb-1 block">С учетом корректировок (Итог)</strong>
-            <p className="text-slate-400 leading-relaxed">
+            <p className="text-slate-100 leading-relaxed">
               Это финальная стоимость именно <strong>вашего</strong> объекта. Мы берём цены аналогов, высчитываем стоимость 1 кв. метра, применяем поправки (на износ, расположение, состояние), и затем умножаем эту скорректированную стоимость метра на точную площадь вашего исторического здания.
             </p>
           </div>
-          <div className="bg-[#1e293b]/40 p-4 rounded-xl border border-sky-500/10">
-            <p className="text-xs text-slate-500">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 mt-4 shadow-inner ring-1 ring-amber-500/20">
+            <p className="text-sm text-amber-200 leading-relaxed">
               💡 <strong>Простой пример:</strong> Аналог площадью 1 000 м² стоит 100 млн рублей. Ваше здание имеет площадь 10 000 м². Естественно, итоговая скорректированная цена будет около 1 млрд рублей, даже если средняя цена по аналогам (исходная) всего 100 млн.
             </p>
           </div>

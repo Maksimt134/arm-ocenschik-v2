@@ -557,19 +557,26 @@ export default function ResultPanel({
               </div>
               <h2 className="text-3xl font-black text-white tracking-tight">Зачем нужны 3 подхода?</h2>
             </div>
-            <div className="space-y-5 text-slate-300 text-[15px] leading-relaxed">
-              <ul className="space-y-4">
-                 <li className="flex gap-3">
-                   <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>
-                   <div><strong className="text-white">Доходный и Сравнительный подходы</strong> всегда в приоритете. Инвесторы покупают денежные потоки, поэтому доходный подход критически важен. Сравнительный показывает реальную температуру рынка. Им всегда отдают наибольший вес при согласовании (обычно от 40% до 50% на каждый).</div>
-                 </li>
-                 <li className="flex gap-3">
-                   <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 shadow-[0_0_5px_rgba(59,130,246,0.8)]"></div>
-                   <div><strong className="text-white">Затратный подход</strong> для исторических зданий — это почти всегда вспомогательная цифра. Ему справедливо отдают минимальный вес (10–15%). Просчитать точную стоимость возведения копии особняка XIX века и объективно высчитать его физический и функциональный износ — это во многом теоретическое упражнение, которое слабо волнует конечного инвестора.</div>
-                 </li>
+            <div className="p-2 space-y-6 mt-4">
+              <ul className="space-y-5 text-slate-300 text-base leading-relaxed">
+                <li className="flex gap-3 items-start">
+                  <span className="text-blue-500 text-2xl leading-none mt-0.5">•</span>
+                  <div>
+                    <span className="text-white font-bold text-lg tracking-wide">Доходный и Сравнительный подходы</span> <span className="font-semibold text-slate-200">всегда в приоритете.</span> Инвесторы покупают денежные потоки, поэтому доходный подход критически важен. Сравнительный показывает реальную температуру рынка. Им всегда отдают наибольший вес при согласовании (обычно от 40% до 50% на каждый).
+                  </div>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <span className="text-blue-500 text-2xl leading-none mt-0.5">•</span>
+                  <div>
+                    <span className="text-white font-bold text-lg tracking-wide">Затратный подход</span> <span className="font-semibold text-slate-200">для исторических зданий — это почти всегда вспомогательная цифра.</span> Ему справедливо отдают минимальный вес (10–15%). Просчитать точную стоимость возведения копии особняка XIX века и объективно высчитать его физический и функциональный износ — это во многом теоретическое упражнение, которое слабо волнует конечного инвестора.
+                  </div>
+                </li>
               </ul>
-              <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl mt-6">
-                <p className="text-slate-400">Разработанная система очень точно отражает реальную механику. Автоматизация сбора данных из кадастра, карт и внешних баз забирает на себя самую тяжелую и монотонную часть работы за компьютером. Аналитику остается лишь проверить адекватность собранных аналогов и грамотно скорректировать весовое согласование в финале, в зависимости от целей оценки.</p>
+
+              <div className="bg-slate-800/80 border border-slate-600 shadow-inner p-6 rounded-2xl mt-8">
+                <p className="text-white text-base leading-relaxed font-medium">
+                  Разработанная система очень точно отражает реальную механику. Автоматизация сбора данных из кадастра, карт и внешних баз забирает на себя самую тяжелую и монотонную часть работы за компьютером. Аналитику остается лишь проверить адекватность собранных аналогов и грамотно скорректировать весовое согласование в финале, в зависимости от целей оценки.
+                </p>
               </div>
             </div>
             <div className="mt-10 flex justify-end">
@@ -702,7 +709,13 @@ export default function ResultPanel({
                   <h3 className="text-sky-400 font-bold mb-3 uppercase tracking-widest text-xs">Сравнительный подход</h3>
                   <div className="font-mono text-xs text-slate-300 bg-black/50 p-4 rounded-xl h-full border border-slate-800/50 break-words whitespace-pre-wrap">
                     <div className="text-slate-500 mb-2 select-none">Базовая формула:</div>
-                    <div className="mb-4 text-sky-300">V_comp = S_okn × ( Σ(P_sqm_i × K_adj_i) / n )</div>
+                    <div className="flex items-center gap-2 mb-4 text-sky-300">
+                      <span>V_comp = S_okn × </span>
+                      <div className="flex flex-col items-center min-w-[120px]">
+                        <span className="pb-1 border-b border-sky-500/40 text-center w-full">Σ(P_sqm_i × K_adj_i)</span>
+                        <span className="pt-1 text-center w-full">n</span>
+                      </div>
+                    </div>
                     <div className="text-slate-400 leading-relaxed mb-4">Оценка проводится методом сравнения удельных показателей (цен за 1 кв.м.) объектов-аналогов с применением поправок на износ и статус памятника.</div>
                     <div className="text-sky-400 font-bold">Текущий результат: {formatValue(safeComp).value} {formatValue(safeComp).unit}</div>
                   </div>
@@ -710,11 +723,17 @@ export default function ResultPanel({
 
                 <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl min-w-0">
                   <h3 className="text-emerald-400 font-bold mb-3 uppercase tracking-widest text-xs">Доходный подход</h3>
-                  <div className="font-mono text-xs text-slate-300 bg-black/50 p-4 rounded-xl h-full border border-slate-800/50 break-words whitespace-pre-wrap">
+                  <div className="font-mono text-xs text-slate-300 bg-black/50 p-4 rounded-xl h-full border border-slate-800/50">
                     <div className="text-slate-500 mb-2 select-none">Прямая капитализация:</div>
-                    <div className="mb-2 text-emerald-300">V_inc = NOI / R_cap</div>
-                    <div className="mb-4 text-slate-500">Где NOI = ПВД - Vacancy - OPEX</div>
-                    <div className="text-slate-400 leading-relaxed mb-4">Стоимость определяется как отношение Чистого Операционного Дохода (NOI) к ставке капитализации (R_cap), отражающей риски.</div>
+                    <div className="flex items-center gap-2 mb-4 text-emerald-300">
+                      <span>V_inc = </span>
+                      <div className="flex flex-col items-center min-w-[60px]">
+                        <span className="pb-1 border-b border-emerald-500/40 text-center w-full">NOI</span>
+                        <span className="pt-1 text-center w-full">R_cap</span>
+                      </div>
+                    </div>
+                    <div className="text-slate-500 mb-2 select-none">Где Чистый Операционный Доход (NOI):</div>
+                    <div className="mb-4 text-slate-300">NOI = ПВД - Потери - OPEX</div>
                     <div className="text-emerald-400 font-bold">Текущий результат: {formatValue(safeInc).value} {formatValue(safeInc).unit}</div>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, ArrowRight, ArrowLeft, Info, X, LineChart } from 'lucide-react';
+import { TrendingUp, ArrowRight, ArrowLeft, Info, X, LineChart, Calculator } from 'lucide-react';
 import { OknObject } from '../types';
 
 const formatValue = (val: number) => {
@@ -66,6 +66,7 @@ const IncomeApproachPanel: React.FC<{ okn: OknObject; setActiveTab: (tab: number
   };
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [isMathModalOpen, setIsMathModalOpen] = useState(false);
 
   const adjustedPvd = breakdown.pvd * (1 + rentAdjustment / 100);
   const adjustedDvd = adjustedPvd * (1 - breakdown.vacancy);
@@ -96,9 +97,16 @@ const IncomeApproachPanel: React.FC<{ okn: OknObject; setActiveTab: (tab: number
             <h1 className="text-3xl font-medium text-white mb-2 flex items-center gap-3">
               <TrendingUp className="w-6 h-6 text-emerald-400" /> Доходный подход
             </h1>
-            <p className="text-slate-400 text-sm max-w-xl">
+            <p className="text-slate-400 text-sm max-w-xl mb-4">
               Оценка чистого инвестиционного потенциала: какую сумму инвестор готов заплатить за объект для получения стабильного рентного дохода.
             </p>
+            <button 
+              onClick={() => setIsMathModalOpen(true)} 
+              className="flex items-center gap-2 text-emerald-400 font-medium text-xs px-4 py-2 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-sm transition-colors shadow-[0_0_15px_rgba(16,185,129,0.1)] w-fit"
+            >
+              <Calculator className="w-4 h-4" />
+              Формулы расчетов доходного подхода
+            </button>
           </div>
           <div className="text-right">
             <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 mb-2 drop-shadow-[0_0_5px_rgba(52,211,153,0.3)]">Итоговая стоимость по доходному подходу</div>
@@ -338,6 +346,49 @@ const IncomeApproachPanel: React.FC<{ okn: OknObject; setActiveTab: (tab: number
         </div>
       </InfoModal>
 
+      {isMathModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[#0B1120]/90 backdrop-blur-md" onClick={() => setIsMathModalOpen(false)}>
+          <div className="bg-[#0f172a] border border-[#1e293b] rounded-3xl w-full max-w-2xl p-8 relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsMathModalOpen(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><X className="w-5 h-5" /></button>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20"><Calculator className="w-6 h-6 text-emerald-400" /></div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Математика доходного подхода</h2>
+            </div>
+
+            <div className="space-y-6 font-mono text-sm text-slate-300">
+              <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl">
+                <div className="text-slate-500 mb-2">Шаг 1. Расчет Чистого Операционного Дохода (NOI):</div>
+                <div className="text-indigo-300 mb-2 font-bold">NOI = ПВД - Потери (Вакантность) - OPEX</div>
+                <div className="text-slate-500 mb-2">Подстановка значений:</div>
+                <div className="text-white p-3 bg-black/30 rounded-xl border border-slate-800/50 leading-relaxed">
+                  NOI = {formatValue(breakdown.pvd).value} {formatValue(breakdown.pvd).unit} - {formatValue(breakdown.pvd * breakdown.vacancy).value} {formatValue(breakdown.pvd * breakdown.vacancy).unit} ({formatPct(breakdown.vacancy)}) - {formatValue(breakdown.dvd * breakdown.opex).value} {formatValue(breakdown.dvd * breakdown.opex).unit} ({formatPct(breakdown.opex)})
+                  <div className="mt-2 text-emerald-400 font-bold">Итог NOI = {formatValue(breakdown.noi).value} {formatValue(breakdown.noi).unit}</div>
+                </div>
+              </div>
+
+              <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl">
+                <div className="text-slate-500 mb-2">Шаг 2. Прямая капитализация:</div>
+                <div className="flex items-center gap-2 text-emerald-300 font-bold mb-3">
+                  <span>V_inc = </span>
+                  <div className="flex flex-col items-center min-w-[70px]">
+                    <span className="pb-0.5 border-b border-emerald-500/40 text-center w-full">NOI</span>
+                    <span className="pt-0.5 text-center w-full">R_cap</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-white p-4 bg-black/30 rounded-xl border border-slate-800/50">
+                  <span>V_inc = </span>
+                  <div className="flex flex-col items-center min-w-[120px] font-bold text-indigo-300">
+                    <span className="pb-1 border-b border-slate-700 text-center w-full">{formatValue(breakdown.noi).value} {formatValue(breakdown.noi).unit}</span>
+                    <span className="pt-1 text-center w-full">{formatPct(breakdown.capRate)}</span>
+                  </div>
+                  <span className="text-emerald-400 font-black text-base ml-2">= {formatValue(breakdown.noi / breakdown.capRate).value} {formatValue(breakdown.noi / breakdown.capRate).unit}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

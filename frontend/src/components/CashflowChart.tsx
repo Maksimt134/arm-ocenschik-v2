@@ -1,14 +1,21 @@
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { OknObject } from '../types';
 
 interface CashflowChartProps { okn?: OknObject; }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
-      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-        <p className="text-white font-bold mb-3 border-b border-slate-800 pb-2">{label} год</p>
+      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] min-w-[250px]">
+        <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-3">
+          <p className="text-white font-bold">{label} год</p>
+          <div className="text-[10px] text-slate-400 uppercase tracking-wider flex flex-col items-end">
+            <span>Накоплено:</span>
+            <span className="text-emerald-400 font-bold">{data.cumulative} млрд ₽</span>
+          </div>
+        </div>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center justify-between gap-6 mb-1.5">
             <div className="flex items-center gap-2">
@@ -30,16 +37,19 @@ const CashflowChart: React.FC<CashflowChartProps> = ({ okn }) => {
     const idHash = String(okn?.id || 'default').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const baseVal = 1.2 + (idHash % 10) * 0.15; 
     
+    let cumBase = 0;
     return Array.from({ length: 10 }).map((_, i) => {
       const year = 2025 + i;
       const trend = 1 + (i * 0.04); // Базовый рост 4% в год
       const noise = 1 + (Math.sin(idHash + i) * 0.06); // Шум ±6% для реалистичности "зубцов"
       const base = baseVal * trend * noise;
+      cumBase += base;
       return {
         year: String(year),
         base: Number(base.toFixed(2)),
         optimistic: Number((base * 1.25).toFixed(2)),
         pessimistic: Number((base * 0.85).toFixed(2)),
+        cumulative: Number(cumBase.toFixed(2))
       };
     });
   }, [okn?.id]);
@@ -63,6 +73,12 @@ const CashflowChart: React.FC<CashflowChartProps> = ({ okn }) => {
             <XAxis dataKey="year" stroke="#475569" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} />
             <YAxis stroke="#475569" tick={{fill: '#64748b', fontSize: 12}} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
             <Tooltip content={<CustomTooltip />} />
+            <Legend 
+              verticalAlign="bottom" 
+              height={36} 
+              iconType="circle"
+              wrapperStyle={{ fontSize: '12px', color: '#94a3b8', paddingTop: '15px' }}
+            />
             <Area type="monotone" dataKey="optimistic" name="Оптимистичный прогноз" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#colorOpt)" />
             <Area type="monotone" dataKey="base" name="Базовый прогноз" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorBase)" />
             <Area type="monotone" dataKey="pessimistic" name="Пессимистичный прогноз" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" fill="none" />
